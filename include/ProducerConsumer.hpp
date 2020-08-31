@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <thread>
+#include <type_traits>
 
 
 #include "Consumer.hpp"
@@ -12,16 +13,24 @@
 
 
 namespace Diploma{
-    template<typename T, typename producer_t, typename consumer_t, size_t bufferSize, typename function_t, typename...Args>
+/*     template <typename R, typename ... Types> constexpr size_t getArgumentCount( R(*f)(Types ...))
+    {
+        return sizeof...(Types);
+    } */
+
+    template<typename producer_t, typename consumer_t, size_t bufferSize, typename...Args>
     class ProducerConsumer {
+        public:
+            using buffer_t = typename producer_t::return_t;
+            static_assert(!std::is_same<buffer_t, void>::value, "return type of producer_t::function_t cannot be void");
         private:
-            static_assert(std::is_base_of<Producer<T, function_t, Args...>, producer_t>::value, "Producer must be inherited from Producer<T>");
-            static_assert(std::is_base_of<Consumer<T>, consumer_t>::value, "Consumer must be inherited from Consumer<T>");
-            std::vector<std::unique_ptr<Producer<T, function_t, Args...> > > _producers;
-            std::vector<std::unique_ptr<Consumer<T> > > _consumers;
+            static_assert(std::is_base_of<Producer<typename producer_t::signature_t, typename producer_t::args_tuple_t>, producer_t>::value, "producer_t must be inherited from Producer<function_t, ...Args>");
+            static_assert(std::is_base_of<Consumer<typename consumer_t::signature_t, Args...>, consumer_t>::value, "consumer_t must be inherited from Consumer<function_t, ...Args>");
+            std::vector<std::unique_ptr<Producer<typename producer_t::signature_t, typename producer_t::args_tuple_t> > > _producers;
+            std::vector<std::unique_ptr<Consumer<typename consumer_t::signature_t, Args...> > > _consumers;
             std::vector<std::thread> _producerThreads;
             std::vector<std::thread> _consumerThreads;
-            Buffer<T> _buffer;
+            Buffer<buffer_t> _buffer;
             std::thread _mainLoop;
             synchronization _sync;
             size_t _bufferSize = bufferSize;
@@ -53,16 +62,17 @@ namespace Diploma{
             }
 
             ProducerConsumer() : ProducerConsumer{1, 1} {}
-            explicit ProducerConsumer(const size_t producersCount, const size_t consumersCount, function_t& producerFunct, Args...args) : _buffer{_bufferSize} {
+            explicit ProducerConsumer(const size_t producersCount, const size_t consumersCount, typename producer_t::signature_t& producerFunct, Args...args) : _buffer{_bufferSize} {
                 _producers.reserve(producersCount);
                 _consumers.reserve(consumersCount);
                 for(size_t i = 0; i < producersCount; ++i){
-                    _producers.emplace_back(std::make_unique<Producer<T, function_t, Args...> >(_buffer, _sync, producerFunct, args...));
+                    _producers.emplace_back(std::make_unique<producer_t>(_buffer, _sync));
                 }
                 for(size_t i = 0; i < consumersCount; ++i){
-                    _consumers.emplace_back(std::make_unique<Consumer<T> >(_buffer, _sync));
+                    _consumers.emplace_back(std::make_unique<consumer_t>(_buffer, _sync, producerFunct, args...));
                 }
             }
+
 
             void run() {
                 std::thread tmp(&ProducerConsumer::mainLoop, &*this);

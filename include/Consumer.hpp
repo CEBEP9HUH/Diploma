@@ -1,16 +1,27 @@
 #pragma once
 
 
+#include <type_traits>
+
+
 #include "Buffer.hpp"
+
+
 #include <iostream>
 
 
 namespace Diploma{
-    template<typename T>
+    template<typename function_t, typename...Args>
     class Consumer {
+        public:
+            static_assert(std::is_invocable<function_t, Args...>::value);
+            using return_t = typename std::invoke_result<function_t, Args...>::type;
+            using signature_t = function_t;
         private:
-            Buffer<T>& _buffer;
+            Buffer<return_t>& _buffer;
             synchronization& _sync;
+            function_t& _producer;
+            std::tuple<Args...> _args;
         public:
             Consumer() = delete;
             Consumer(const Consumer&) = delete;
@@ -19,7 +30,10 @@ namespace Diploma{
             Consumer& operator=(Consumer&&) = delete;
             ~Consumer() = default;
 
-            Consumer(Buffer<T>& buffer, synchronization& sync) : _buffer{buffer}, _sync{sync} {}
+            Consumer(Buffer<return_t>& buffer, synchronization& sync, function_t& funct, Args...args) : _buffer{buffer}, 
+                                                                                                        _sync{sync},
+                                                                                                        _producer{funct},
+                                                                                                        _args{args...} {}
 
             void run(){
                 while(!_sync._exitThread){
