@@ -18,16 +18,16 @@ namespace Diploma{
         return sizeof...(Types);
     } */
 
-    template<typename producer_t, typename consumer_t, size_t bufferSize, typename...Args>
+    template<typename producer_t, typename consumer_t, size_t bufferSize>
     class ProducerConsumer {
         public:
             using buffer_t = typename producer_t::return_t;
             static_assert(!std::is_same<buffer_t, void>::value, "return type of producer_t::function_t cannot be void");
         private:
             static_assert(std::is_base_of<Producer<typename producer_t::signature_t, typename producer_t::args_tuple_t>, producer_t>::value, "producer_t must be inherited from Producer<function_t, ...Args>");
-            static_assert(std::is_base_of<Consumer<typename consumer_t::signature_t, Args...>, consumer_t>::value, "consumer_t must be inherited from Consumer<function_t, ...Args>");
-            std::vector<std::unique_ptr<Producer<typename producer_t::signature_t, typename producer_t::args_tuple_t> > > _producers;
-            std::vector<std::unique_ptr<Consumer<typename consumer_t::signature_t, Args...> > > _consumers;
+            static_assert(std::is_base_of<Consumer<typename consumer_t::signature_t, buffer_t, typename consumer_t::args_tuple_t>, consumer_t>::value, "consumer_t must be inherited from Consumer<function_t, ...Args>");
+            std::vector<std::unique_ptr<producer_t> > _producers;
+            std::vector<std::unique_ptr<consumer_t> > _consumers;
             std::vector<std::thread> _producerThreads;
             std::vector<std::thread> _consumerThreads;
             Buffer<buffer_t> _buffer;
@@ -62,17 +62,21 @@ namespace Diploma{
             }
 
             ProducerConsumer() : ProducerConsumer{1, 1} {}
-            explicit ProducerConsumer(const size_t producersCount, const size_t consumersCount, typename producer_t::signature_t& producerFunct, Args...args) : _buffer{_bufferSize} {
+            explicit ProducerConsumer(  const size_t producersCount, 
+                                        const size_t consumersCount, 
+                                        typename producer_t::signature_t producerFunct, 
+                                        typename producer_t::args_tuple_t producerArgs, 
+                                        typename consumer_t::signature_t consumerFunct, 
+                                        typename consumer_t::args_tuple_t consumerArgs) : _buffer{_bufferSize} {
                 _producers.reserve(producersCount);
                 _consumers.reserve(consumersCount);
                 for(size_t i = 0; i < producersCount; ++i){
-                    _producers.emplace_back(std::make_unique<producer_t>(_buffer, _sync));
+                    _producers.emplace_back(std::make_unique<producer_t>(_buffer, _sync, producerFunct, producerArgs));
                 }
                 for(size_t i = 0; i < consumersCount; ++i){
-                    _consumers.emplace_back(std::make_unique<consumer_t>(_buffer, _sync, producerFunct, args...));
+                    _consumers.emplace_back(std::make_unique<consumer_t>(_buffer, _sync, consumerFunct, consumerArgs));
                 }
             }
-
 
             void run() {
                 std::thread tmp(&ProducerConsumer::mainLoop, &*this);

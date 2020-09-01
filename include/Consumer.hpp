@@ -11,16 +11,20 @@
 
 
 namespace Diploma{
-    template<typename function_t, typename...Args>
-    class Consumer {
+    template<typename function_t, typename T, typename...Args>
+    class Consumer;
+
+    template<typename function_t, typename T, typename...Args>
+    class Consumer <function_t, T, std::tuple<Args...> > {
         public:
-            static_assert(std::is_invocable<function_t, Args...>::value);
-            using return_t = typename std::invoke_result<function_t, Args...>::type;
+            static_assert(std::is_invocable<function_t, T, Args...>::value);
+            using buffer_t = T;
             using signature_t = function_t;
+            using args_tuple_t = std::tuple<Args...>;
         private:
-            Buffer<return_t>& _buffer;
+            Buffer<buffer_t>& _buffer;
             synchronization& _sync;
-            function_t& _producer;
+            function_t _consumer;
             std::tuple<Args...> _args;
         public:
             Consumer() = delete;
@@ -30,10 +34,10 @@ namespace Diploma{
             Consumer& operator=(Consumer&&) = delete;
             ~Consumer() = default;
 
-            Consumer(Buffer<return_t>& buffer, synchronization& sync, function_t& funct, Args...args) : _buffer{buffer}, 
-                                                                                                        _sync{sync},
-                                                                                                        _producer{funct},
-                                                                                                        _args{args...} {}
+            Consumer(Buffer<buffer_t>& buffer, synchronization& sync, function_t funct, args_tuple_t& args) :  _buffer{buffer}, 
+                                                                                                                _sync{sync},
+                                                                                                                _consumer{funct},
+                                                                                                                _args{args} {}
 
             void run(){
                 while(!_sync._exitThread){
@@ -42,7 +46,8 @@ namespace Diploma{
                                                                         std::chrono::milliseconds(10),
                                                                         [this](){return !_buffer.isEmpty();});
                     if(bufferNotEmpty){
-                        std::cout << "get: " << _buffer.get() <<'\n';
+                        auto params = std::tuple_cat(std::make_tuple(_buffer.get()), _args);
+                        std::apply(_consumer, params);
                     }
                     lockGuard.unlock();
                     _sync._conditionVar.notify_one();
