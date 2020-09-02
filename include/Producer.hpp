@@ -25,10 +25,6 @@ namespace Diploma{
             synchronization& _sync;
             function_t _producer;
             args_tuple_t _args;
-            //std::queue<return_t> _localBuffer;
-            return_t produceData(){
-                return std::apply(_producer, _args);
-            }
         public:
             Producer() = delete;
             Producer(const Producer&) = delete;
@@ -45,11 +41,12 @@ namespace Diploma{
             void run(){
                 while(!_sync._exitThread){
                     std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
-                    _sync._conditionVar.wait(lockGuard, [this](){return !_buffer.isFull();});
-                    return_t data = produceData();
-                    _buffer.insert(data);
+                    auto bufferNotFull = _sync._conditionVar.wait_for(lockGuard, std::chrono::milliseconds(1), [this](){return !_buffer.isFull();});
+                    if(bufferNotFull){
+                        _buffer.insert(std::apply(_producer, _args));
+                    }
                     lockGuard.unlock();
-                    _sync._conditionVar.notify_one();
+                    _sync._conditionVar.notify_all();
                     std::this_thread::sleep_for(std::chrono::nanoseconds(1));
                 }
             }

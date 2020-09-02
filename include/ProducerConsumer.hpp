@@ -13,10 +13,6 @@
 
 
 namespace Diploma{
-/*     template <typename R, typename ... Types> constexpr size_t getArgumentCount( R(*f)(Types ...))
-    {
-        return sizeof...(Types);
-    } */
 
     template<typename producer_t, typename consumer_t, size_t bufferSize>
     class ProducerConsumer {
@@ -33,7 +29,7 @@ namespace Diploma{
             Buffer<buffer_t> _buffer;
             std::thread _mainLoop;
             synchronization _sync;
-            size_t _bufferSize = bufferSize;
+            bool running = false;
             void mainLoop(){
                 _producerThreads.reserve(_producers.size());
                 _consumerThreads.reserve(_consumers.size());
@@ -45,49 +41,70 @@ namespace Diploma{
                 }
             }
         public:
+            ProducerConsumer() = delete;
             ProducerConsumer(const ProducerConsumer&) = delete;
             ProducerConsumer(ProducerConsumer&&) = delete;
             ProducerConsumer& operator=(const ProducerConsumer&) = delete;
             ProducerConsumer& operator=(ProducerConsumer&&) = delete;
             ~ProducerConsumer() {
-                if(!_sync._exitThread){
-                    stop();
-                }
-                for(auto& p : _producerThreads) {
-                    p.join();
-                }
-                for(auto& c : _consumerThreads) {
-                    c.join();
+                stop();
+            }
+
+            explicit ProducerConsumer(  const size_t producersCount, 
+                                        typename producer_t::signature_t producerFunct, 
+                                        typename producer_t::args_tuple_t producerArgs, 
+                                        const size_t consumersCount, 
+                                        typename consumer_t::signature_t consumerFunct, 
+                                        typename consumer_t::args_tuple_t consumerArgs) : _buffer{bufferSize} {
+                addProducers(producersCount, producerFunct, producerArgs);
+                addConsumers(consumersCount, consumerFunct, consumerArgs);
+            }
+
+            void addProducers(const size_t count,
+                            typename producer_t::signature_t producerFunct, 
+                            typename producer_t::args_tuple_t producerArgs) {                
+                _producers.reserve(_producers.size() + count);
+                for(size_t i = 0; i < count; ++i){
+                    _producers.emplace_back(std::make_unique<producer_t>(_buffer, _sync, producerFunct, producerArgs));
                 }
             }
 
-            ProducerConsumer() : ProducerConsumer{1, 1} {}
-            explicit ProducerConsumer(  const size_t producersCount, 
-                                        const size_t consumersCount, 
-                                        typename producer_t::signature_t producerFunct, 
-                                        typename producer_t::args_tuple_t producerArgs, 
-                                        typename consumer_t::signature_t consumerFunct, 
-                                        typename consumer_t::args_tuple_t consumerArgs) : _buffer{_bufferSize} {
-                _producers.reserve(producersCount);
-                _consumers.reserve(consumersCount);
-                for(size_t i = 0; i < producersCount; ++i){
-                    _producers.emplace_back(std::make_unique<producer_t>(_buffer, _sync, producerFunct, producerArgs));
-                }
-                for(size_t i = 0; i < consumersCount; ++i){
+            void addConsumers(const size_t count,
+                            typename consumer_t::signature_t consumerFunct, 
+                            typename consumer_t::args_tuple_t consumerArgs) {
+                _consumers.reserve(_consumers.size() + count);
+                for(size_t i = 0; i < count; ++i){
                     _consumers.emplace_back(std::make_unique<consumer_t>(_buffer, _sync, consumerFunct, consumerArgs));
                 }
             }
 
             void run() {
-                std::thread tmp(&ProducerConsumer::mainLoop, &*this);
-                _mainLoop.swap(tmp);
+                if(!running){
+                    _sync._exitThread = false;
+                    std::thread tmp(&ProducerConsumer::mainLoop, &*this);
+                    _mainLoop.swap(tmp);
+                    _mainLoop.join();
+                    running = true;
+                }
             }
 
             void stop(){
-                _mainLoop.join();
-                _sync._buffer_mutex.lock();
-                _sync._exitThread = true;
-                _sync._buffer_mutex.unlock();
+                if(running){
+                    _sync._buffer_mutex.lock();
+                    _sync._exitThread = true;
+                    _sync._buffer_mutex.unlock();
+                    for(auto& p : _producerThreads) {
+                        p.join();
+                    }
+                    for(auto& c : _consumerThreads) {
+                        c.join();
+                    }
+                    running = false;
+                }
+            }
+
+            inline bool isRunning() const noexcept {
+                return running;
             }
     };
 }

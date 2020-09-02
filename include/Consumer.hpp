@@ -11,14 +11,13 @@
 
 
 namespace Diploma{
-    template<typename function_t, typename T, typename...Args>
+    template<typename function_t, typename buffer_t, typename...Args>
     class Consumer;
 
-    template<typename function_t, typename T, typename...Args>
-    class Consumer <function_t, T, std::tuple<Args...> > {
+    template<typename function_t, typename buffer_t, typename...Args>
+    class Consumer <function_t, buffer_t, std::tuple<Args...> > {
         public:
-            static_assert(std::is_invocable<function_t, T, Args...>::value);
-            using buffer_t = T;
+            static_assert(std::is_invocable<function_t, buffer_t, Args...>::value);
             using signature_t = function_t;
             using args_tuple_t = std::tuple<Args...>;
         private:
@@ -43,14 +42,15 @@ namespace Diploma{
                 while(!_sync._exitThread){
                     std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
                     auto bufferNotEmpty = _sync._conditionVar.wait_for(lockGuard,
-                                                                        std::chrono::milliseconds(10),
+                                                                        std::chrono::milliseconds(1),
                                                                         [this](){return !_buffer.isEmpty();});
                     if(bufferNotEmpty){
                         auto params = std::tuple_cat(std::make_tuple(_buffer.get()), _args);
                         std::apply(_consumer, params);
                     }
                     lockGuard.unlock();
-                    _sync._conditionVar.notify_one();
+                    _sync._conditionVar.notify_all();
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(1));
                 }
             }
     };

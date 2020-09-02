@@ -5,7 +5,7 @@
 #include <mutex>
 #include <condition_variable>
 
-
+#include <iostream>
 namespace Diploma{
     struct synchronization{
         std::mutex _buffer_mutex;
@@ -34,11 +34,15 @@ namespace Diploma{
             return _buffer.empty();
         }
 
-        inline void insert(const T& val){
-            _buffer.push(val);
+        inline bool insert(const T& val){
+            if(!isFull()){
+                _buffer.push(val);
+                return true;
+            }
+            return false;
         }
 
-        inline T get(){
+        T get(){
             auto val = _buffer.front();
             _buffer.pop();
             return val;
