@@ -19,7 +19,7 @@ add_executable(
     ${incl}/Buffer.hpp
     ${incl}/Producer.hpp
     ${incl}/Consumer.hpp
-    ${incl}/ProducerConsumer.hpp
+    ${incl}/PBCController.hpp
 )
 
 target_link_libraries(
@@ -34,7 +34,7 @@ add_executable(
     ${incl}/Buffer.hpp
     ${incl}/Producer.hpp
     ${incl}/Consumer.hpp
-    ${incl}/ProducerConsumer.hpp
+    ${incl}/PBCController.hpp
 )
 
 target_link_libraries(
@@ -49,6 +49,10 @@ target_link_libraries(
 add_executable(
     ${perf_name}
     ${perf}/performance_testing.cpp
+    ${incl}/Buffer.hpp
+    ${incl}/Producer.hpp
+    ${incl}/Consumer.hpp
+    ${incl}/PBCController.hpp
 )
 
 target_link_libraries(

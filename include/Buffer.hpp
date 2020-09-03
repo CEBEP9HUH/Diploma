@@ -1,5 +1,9 @@
 #pragma once
-
+/* 
+    Buffer<buffer_t> is a shared memory place which can get values 
+    from producer and provides them to consumer.
+    buffer_t - is a type of storing data
+*/
 
 #include <queue>
 #include <mutex>
@@ -12,11 +16,11 @@ namespace Diploma{
         std::condition_variable _conditionVar;
         bool _exitThread = false;
     };
-    template<typename T>
+    template<typename buffer_t>
     class Buffer {
         private:
             size_t _maxSize;
-            std::queue<T> _buffer;
+            std::queue<buffer_t> _buffer;
         public:
         Buffer(const Buffer&) = delete;
         Buffer(Buffer&&) = delete;
@@ -26,15 +30,19 @@ namespace Diploma{
         Buffer(size_t size) : _maxSize{size} {}
         ~Buffer() = default;
 
+        // checks if buffer is full
         inline bool isFull() const noexcept {
             return _buffer.size() == _maxSize;
         }
 
+        // checks if buffer is empty
         inline bool isEmpty() const noexcept {
             return _buffer.empty();
         }
 
-        inline bool insert(const T& val){
+        // insert new element into buffer if it possible
+        // return true if insertion was succeed
+        inline bool insert(const buffer_t& val){
             if(!isFull()){
                 _buffer.push(val);
                 return true;
@@ -42,7 +50,9 @@ namespace Diploma{
             return false;
         }
 
-        T get(){
+        // get next value of buffer and remove it from buffer
+        // doesn't check if buffer is empty
+        buffer_t get(){
             auto val = _buffer.front();
             _buffer.pop();
             return val;

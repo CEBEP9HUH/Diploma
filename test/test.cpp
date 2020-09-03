@@ -3,7 +3,7 @@
 #include <mutex>
 
 
-#include "ProducerConsumer.hpp"
+#include "PBCController.hpp"
 #include "Consumer.hpp"
 #include "Producer.hpp"
 

@@ -2,7 +2,7 @@
 #include <random>
 
 
-#include "ProducerConsumer.hpp"
+#include "PBCController.hpp"
 
 /* 
 void foo([[maybe_unused]]int a){
@@ -22,7 +22,7 @@ public:
 
 static void BM_ProducerConsumerTesting(benchmark::State& state){
     A a;
-    Diploma::ProducerConsumer<Diploma::Producer<decltype(a), std::tuple<int> >, 
+    Diploma::PBCController<Diploma::Producer<decltype(a), std::tuple<int> >, 
                                 Diploma::Consumer<void(*)(int), int, std::tuple<> >, 
                                 50> pci(40, 2, a, std::make_tuple<int>(-10), foo, std::make_tuple<>()); 
     for (auto _ : state){
