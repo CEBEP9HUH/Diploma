@@ -43,7 +43,7 @@ public:
 
 int main(){
     A a("Pupa"), b("Lupa");
-    Diploma::PBCController<Diploma::Producer<int, decltype(a), std::tuple<int> >, 
+    Diploma::PBCController<Diploma::InfiniteProducer<int, A, std::tuple<int> >, 
                                 Diploma::Consumer<int, void(*)(int), std::tuple<> >, 
                                 2000> pci(2, a, std::make_tuple<int>(-10), 2, foo, std::make_tuple<>());
     pci.addProducers(4, b, std::tuple<int>(-100));

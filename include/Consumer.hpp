@@ -22,14 +22,11 @@
 
 namespace Diploma{
     template<typename buffer_t, typename function_t, typename...Args>
-    class ConsumerBase;
+    class ConsumerBase : public IFunctionCaller {};
 
     template<typename buffer_t, typename function_t, typename...Args>
-    class Consumer : public ConsumerBase<buffer_t, function_t, Args...>{
-    };
-
-    template<typename buffer_t, typename function_t, typename...Args>
-    class ConsumerBase<buffer_t, function_t, std::tuple<Args...> >{
+    class ConsumerBase<buffer_t, function_t, std::tuple<Args...> > : 
+    public IFunctionCaller { 
     public:
         static_assert(std::is_invocable<function_t, buffer_t, Args...>::value);
         using signature_t = function_t;
@@ -45,12 +42,16 @@ namespace Diploma{
                                                             _sync{sync},
                                                             _consumer{funct},
                                                             _args{args} {}
-        virtual void run() = 0;
         virtual ~ConsumerBase() = default;
     };
 
     template<typename buffer_t, typename function_t, typename...Args>
-    class Consumer <buffer_t, function_t, std::tuple<Args...> > : public ConsumerBase<buffer_t, function_t, std::tuple<Args...> > {
+    class Consumer : public ConsumerBase<buffer_t, function_t, Args...>{
+    };
+
+    template<typename buffer_t, typename function_t, typename...Args>
+    class Consumer <buffer_t, function_t, std::tuple<Args...> > : 
+    public ConsumerBase<buffer_t, function_t, std::tuple<Args...> > {
     private:
         using consumerBase_t = ConsumerBase<buffer_t, function_t, std::tuple<Args...> >;
     public:

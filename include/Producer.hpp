@@ -9,24 +9,24 @@
         std::tuple<Args...> - is a tuple of types which must be passed 
     into producer's function
     
-    Producer is an implementation of ProducerBase 
+    InfiniteProducer is an implementation of ProducerBase which repeats 
+    producer function call until program end
 */
 
 #include <type_traits>
 
 
+#include "IFunctionCaller.hpp"
 #include "Buffer.hpp"
 
 
 namespace Diploma{
     template<typename buffer_t, typename function_t, typename...Args>
-    class ProducerBase;
+    class ProducerBase : public IFunctionCaller {};
 
     template<typename buffer_t, typename function_t, typename...Args>
-    class Producer : public ProducerBase<buffer_t, function_t, Args...>{};
-
-    template<typename buffer_t, typename function_t, typename...Args>
-    class ProducerBase<buffer_t, function_t, std::tuple<Args...> >{
+    class ProducerBase<buffer_t, function_t, std::tuple<Args...> > : 
+    public IFunctionCaller{
     public:
         static_assert(std::is_invocable<function_t, Args...>::value);
         using return_t = typename std::invoke_result<function_t, Args...>::type;
@@ -44,27 +44,65 @@ namespace Diploma{
                                                             _sync{sync},
                                                             _producer{funct},
                                                             _args{args} {}
-        virtual void run() = 0;
         virtual ~ProducerBase() = default;
     };
 
     template<typename buffer_t, typename function_t, typename...Args>
-    class Producer <buffer_t, function_t, std::tuple<Args...> >  : public ProducerBase<buffer_t, function_t, std::tuple<Args...> > {
+    class InfiniteProducer : public ProducerBase<buffer_t, function_t, Args...>{};
+
+    template<typename buffer_t, typename function_t, typename...Args>
+    class InfiniteProducer <buffer_t, function_t, std::tuple<Args...> >  : 
+    public ProducerBase<buffer_t, function_t, std::tuple<Args...> > {
     private:
         using produserBase_t = ProducerBase<buffer_t, function_t, std::tuple<Args...> >;
     public:
-        Producer() = delete;
-        Producer(const Producer&) = delete;
-        Producer(Producer&&) = delete;
-        Producer& operator=(const Producer&) = delete;
-        Producer& operator=(Producer&&) = delete;
-        virtual ~Producer() = default;
+        InfiniteProducer() = delete;
+        InfiniteProducer(const InfiniteProducer&) = delete;
+        InfiniteProducer(InfiniteProducer&&) = delete;
+        InfiniteProducer& operator=(const InfiniteProducer&) = delete;
+        InfiniteProducer& operator=(InfiniteProducer&&) = delete;
+        virtual ~InfiniteProducer() = default;
 
-        Producer(Buffer<buffer_t>& buffer, synchronization& sync, 
+        InfiniteProducer(Buffer<buffer_t>& buffer, synchronization& sync, 
                 function_t funct, typename produserBase_t::args_tuple_t& args) : produserBase_t{buffer, sync, funct, args} {}
 
         virtual void run() override {
             while(!this->_sync._exitThread){
+                std::unique_lock<std::mutex> lockGuard(this->_sync._buffer_mutex);
+                auto bufferNotFull = this->_sync._conditionVar.wait_for(lockGuard, 
+                                                                        std::chrono::milliseconds(1), 
+                                                                        [this](){return !this->_buffer.isFull();});
+                if(bufferNotFull){
+                    this->_buffer.insert(std::apply(this->_producer, this->_args));
+                }
+                lockGuard.unlock();
+                this->_sync._conditionVar.notify_all();
+                std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+            }
+        }
+    };
+
+    template<typename buffer_t, typename function_t, typename...Args>
+    class LoopProducer : public ProducerBase<buffer_t, function_t, Args...>{};
+
+    template<typename buffer_t, typename function_t, typename...Args>
+    class LoopProducer <buffer_t, function_t, std::tuple<Args...> >  : public ProducerBase<buffer_t, function_t, std::tuple<Args...> > {
+    private:
+        using produserBase_t = ProducerBase<buffer_t, function_t, std::tuple<Args...> >;
+        size_t _repeatsCount;
+    public:
+        LoopProducer() = delete;
+        LoopProducer(const LoopProducer&) = delete;
+        LoopProducer(LoopProducer&&) = delete;
+        LoopProducer& operator=(const LoopProducer&) = delete;
+        LoopProducer& operator=(LoopProducer&&) = delete;
+        virtual ~LoopProducer() = default;
+
+        LoopProducer(Buffer<buffer_t>& buffer, synchronization& sync, 
+                function_t funct, typename produserBase_t::args_tuple_t& args) : produserBase_t{buffer, sync, funct, args} {}
+
+        virtual void run() override {
+            for(size_t i=0; i<_repeatsCount, !this->_sync._exitThread; ++i){
                 std::unique_lock<std::mutex> lockGuard(this->_sync._buffer_mutex);
                 auto bufferNotFull = this->_sync._conditionVar.wait_for(lockGuard, 
                                                                         std::chrono::milliseconds(1), 

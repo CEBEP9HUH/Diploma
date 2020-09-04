@@ -32,8 +32,8 @@ namespace Diploma{
             using consumerBase_t = ConsumerBase<buffer_t, typename consumer_t::signature_t, typename consumer_t::args_tuple_t>;
             static_assert(std::is_base_of<producerBase_t, producer_t>::value, "producer_t must be inherited from ProducerBase<buffer_t, function_t, std::tuple<Args...> >");
             static_assert(std::is_base_of<consumerBase_t, consumer_t>::value, "consumer_t must be inherited from ConsumerBase<buffer_t, function_t, std::tuple<Args...> >");
-            std::vector<std::unique_ptr<producerBase_t> > _producers;
-            std::vector<std::unique_ptr<consumerBase_t> > _consumers;
+            std::vector<std::unique_ptr<IFunctionCaller> > _producers;
+            std::vector<std::unique_ptr<IFunctionCaller> > _consumers;
             std::vector<std::thread> _producerThreads;
             std::vector<std::thread> _consumerThreads;
             Buffer<buffer_t> _buffer;
