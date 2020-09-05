@@ -7,4 +7,7 @@ namespace Diploma{
         virtual void run() = 0;
         virtual ~IFunctionCaller() = default;
     };
+
+    class IProducerBase : public IFunctionCaller {};
+    class IConsumerBase : public IFunctionCaller {};
 }

@@ -35,25 +35,23 @@ public:
 
 /* 
     TODO
-    add priority_queue
     add tests
     add performance tests
  */
 
 
 int main(){
+    using namespace Diploma;
     A a("Pupa"), b("Lupa");
-    Diploma::PBCController<Diploma::InfiniteProducer<int, A, std::tuple<int> >, 
-                                Diploma::Consumer<int, void(*)(int), std::tuple<> >, 
-                                2000> pci(2, a, std::make_tuple<int>(-10), 2, foo, std::make_tuple<>());
-    pci.addProducers(4, b, std::tuple<int>(-100));
-    pci.addConsumers(4, bar, std::tuple<>());
+    PBCController<int> pci(std::make_shared<PriorityBuffer<int, std::greater<int> > >(100));
+    pci.addProducers<InfiniteProducer<int, A, std::tuple<int> > >(4, b, std::tuple<int>(-100)); 
+    pci.addConsumers<Consumer<int, void(*)(int), std::tuple<> > >(4, bar, std::tuple<>());
     pci.run();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     pci.stop();
     
     A c("Maushi");
-    pci.addProducers(4, c, std::tuple<int>(-0));
+    pci.addProducers<LoopedProducer<int, A, std::tuple<int> > >(2, c, std::tuple<int>(-0), 2);
     pci.run();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     pci.stop();

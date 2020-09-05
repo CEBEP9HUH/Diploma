@@ -16,6 +16,7 @@ find_package(benchmark REQUIRED)
 add_executable(
     ${proj_name}
     ${src}/main.cpp
+    ${incl}/IFunctionCaller.hpp
     ${incl}/Buffer.hpp
     ${incl}/Producer.hpp
     ${incl}/Consumer.hpp
@@ -30,6 +31,7 @@ target_link_libraries(
 # tests
 add_executable(
     ${test_name}
+    ${incl}/IFunctionCaller.hpp
     ${test}/test.cpp
     ${incl}/Buffer.hpp
     ${incl}/Producer.hpp
@@ -49,6 +51,7 @@ target_link_libraries(
 add_executable(
     ${perf_name}
     ${perf}/performance_testing.cpp
+    ${incl}/IFunctionCaller.hpp
     ${incl}/Buffer.hpp
     ${incl}/Producer.hpp
     ${incl}/Consumer.hpp

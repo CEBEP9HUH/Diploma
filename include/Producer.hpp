@@ -11,6 +11,8 @@
     
     InfiniteProducer is an implementation of ProducerBase which repeats 
     producer function call until program end
+    LoopedProducer is an implementation of ProducerBase which repeats 
+    producer function call a finite number of times
 */
 
 #include <type_traits>
@@ -22,11 +24,11 @@
 
 namespace Diploma{
     template<typename buffer_t, typename function_t, typename...Args>
-    class ProducerBase : public IFunctionCaller {};
+    class ProducerBase : public IProducerBase {};
 
     template<typename buffer_t, typename function_t, typename...Args>
     class ProducerBase<buffer_t, function_t, std::tuple<Args...> > : 
-    public IFunctionCaller{
+    public IProducerBase{
     public:
         static_assert(std::is_invocable<function_t, Args...>::value);
         using return_t = typename std::invoke_result<function_t, Args...>::type;
@@ -34,18 +36,31 @@ namespace Diploma{
         using signature_t = function_t;
         using args_tuple_t = std::tuple<Args...>;
     protected:
-        Buffer<buffer_t>& _buffer;
+        std::shared_ptr<BufferBase<buffer_t> > _buffer;
         synchronization& _sync;
         function_t _producer;
         args_tuple_t _args;
+        virtual void produce(){
+            std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
+            auto bufferNotFull = _sync._conditionVar.wait_for(lockGuard, 
+                                                            std::chrono::milliseconds(1), 
+                                                            [this](){return !_buffer->isFull();});
+            if(bufferNotFull){
+                _buffer->insert(std::apply(_producer, _args));
+            }
+            lockGuard.unlock();
+            _sync._conditionVar.notify_all();
+            std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+        }
     public:
-        ProducerBase(Buffer<buffer_t>& buffer, synchronization& sync, 
+        ProducerBase(std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
                     function_t funct, args_tuple_t& args) : _buffer{buffer}, 
                                                             _sync{sync},
                                                             _producer{funct},
                                                             _args{args} {}
         virtual ~ProducerBase() = default;
     };
+
 
     template<typename buffer_t, typename function_t, typename...Args>
     class InfiniteProducer : public ProducerBase<buffer_t, function_t, Args...>{};
@@ -63,56 +78,41 @@ namespace Diploma{
         InfiniteProducer& operator=(InfiniteProducer&&) = delete;
         virtual ~InfiniteProducer() = default;
 
-        InfiniteProducer(Buffer<buffer_t>& buffer, synchronization& sync, 
+        InfiniteProducer(std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
                 function_t funct, typename produserBase_t::args_tuple_t& args) : produserBase_t{buffer, sync, funct, args} {}
 
         virtual void run() override {
             while(!this->_sync._exitThread){
-                std::unique_lock<std::mutex> lockGuard(this->_sync._buffer_mutex);
-                auto bufferNotFull = this->_sync._conditionVar.wait_for(lockGuard, 
-                                                                        std::chrono::milliseconds(1), 
-                                                                        [this](){return !this->_buffer.isFull();});
-                if(bufferNotFull){
-                    this->_buffer.insert(std::apply(this->_producer, this->_args));
-                }
-                lockGuard.unlock();
-                this->_sync._conditionVar.notify_all();
-                std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+                this->produce();
             }
         }
     };
 
-    template<typename buffer_t, typename function_t, typename...Args>
-    class LoopProducer : public ProducerBase<buffer_t, function_t, Args...>{};
 
     template<typename buffer_t, typename function_t, typename...Args>
-    class LoopProducer <buffer_t, function_t, std::tuple<Args...> >  : public ProducerBase<buffer_t, function_t, std::tuple<Args...> > {
+    class LoopedProducer : public ProducerBase<buffer_t, function_t, Args...>{};
+
+    template<typename buffer_t, typename function_t, typename...Args>
+    class LoopedProducer <buffer_t, function_t, std::tuple<Args...> >  : public ProducerBase<buffer_t, function_t, std::tuple<Args...> > {
     private:
         using produserBase_t = ProducerBase<buffer_t, function_t, std::tuple<Args...> >;
         size_t _repeatsCount;
     public:
-        LoopProducer() = delete;
-        LoopProducer(const LoopProducer&) = delete;
-        LoopProducer(LoopProducer&&) = delete;
-        LoopProducer& operator=(const LoopProducer&) = delete;
-        LoopProducer& operator=(LoopProducer&&) = delete;
-        virtual ~LoopProducer() = default;
+        LoopedProducer() = delete;
+        LoopedProducer(const LoopedProducer&) = delete;
+        LoopedProducer(LoopedProducer&&) = delete;
+        LoopedProducer& operator=(const LoopedProducer&) = delete;
+        LoopedProducer& operator=(LoopedProducer&&) = delete;
+        virtual ~LoopedProducer() = default;
 
-        LoopProducer(Buffer<buffer_t>& buffer, synchronization& sync, 
-                function_t funct, typename produserBase_t::args_tuple_t& args) : produserBase_t{buffer, sync, funct, args} {}
+        LoopedProducer(std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
+                function_t funct, typename produserBase_t::args_tuple_t& args, 
+                const size_t repeatsCount) : produserBase_t{buffer, sync, funct, args}, 
+                                            _repeatsCount{repeatsCount} {}
 
         virtual void run() override {
-            for(size_t i=0; i<_repeatsCount, !this->_sync._exitThread; ++i){
-                std::unique_lock<std::mutex> lockGuard(this->_sync._buffer_mutex);
-                auto bufferNotFull = this->_sync._conditionVar.wait_for(lockGuard, 
-                                                                        std::chrono::milliseconds(1), 
-                                                                        [this](){return !this->_buffer.isFull();});
-                if(bufferNotFull){
-                    this->_buffer.insert(std::apply(this->_producer, this->_args));
-                }
-                lockGuard.unlock();
-                this->_sync._conditionVar.notify_all();
-                std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+            for(size_t i=0; !this->_sync._exitThread &&  i<_repeatsCount; ++i){
+                this->produce();
             }
         }
     };

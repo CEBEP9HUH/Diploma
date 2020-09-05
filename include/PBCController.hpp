@@ -22,25 +22,17 @@
 
 
 namespace Diploma{
-    template<typename producer_t, typename consumer_t, size_t bufferSize>
+    //template<typename producer_t, typename consumer_t, size_t bufferSize>
+    template<typename buffer_t>
     class PBCController {
-        public:
-            using buffer_t = typename producer_t::return_t;
-            static_assert(!std::is_same<buffer_t, void>::value, "return type of buffer cannot be void");
         private:
-            using producerBase_t = ProducerBase<buffer_t, typename producer_t::signature_t, typename producer_t::args_tuple_t>;
-            using consumerBase_t = ConsumerBase<buffer_t, typename consumer_t::signature_t, typename consumer_t::args_tuple_t>;
-            static_assert(std::is_base_of<producerBase_t, producer_t>::value, "producer_t must be inherited from ProducerBase<buffer_t, function_t, std::tuple<Args...> >");
-            static_assert(std::is_base_of<consumerBase_t, consumer_t>::value, "consumer_t must be inherited from ConsumerBase<buffer_t, function_t, std::tuple<Args...> >");
-            std::vector<std::unique_ptr<IFunctionCaller> > _producers;
-            std::vector<std::unique_ptr<IFunctionCaller> > _consumers;
+            std::vector<std::unique_ptr<IProducerBase> > _producers;
+            std::vector<std::unique_ptr<IConsumerBase> > _consumers;
             std::vector<std::thread> _producerThreads;
             std::vector<std::thread> _consumerThreads;
-            Buffer<buffer_t> _buffer;
-            std::thread _mainLoop;
+            std::shared_ptr<BufferBase<buffer_t> > _buffer;
             synchronization _sync;
             bool running = false;
-
             template<typename T>
             void runThreads(std::vector<std::thread>& threads, 
                             const std::vector<std::unique_ptr<T> >& source){
@@ -66,46 +58,43 @@ namespace Diploma{
                 stop();
             }
 
-            explicit PBCController( const size_t producersCount, 
-                                    typename producer_t::signature_t producerFunct, 
-                                    typename producer_t::args_tuple_t producerArgs, 
-                                    const size_t consumersCount, 
-                                    typename consumer_t::signature_t consumerFunct, 
-                                    typename consumer_t::args_tuple_t consumerArgs) : _buffer{bufferSize} {
-                addProducers(producersCount, producerFunct, producerArgs);
-                addConsumers(consumersCount, consumerFunct, consumerArgs);
+            explicit PBCController(const std::shared_ptr<BufferBase<buffer_t> >& buffer) : _buffer{buffer} {
             }
 
             // add count of producers. both the function and args can be different 
             // from producer's function and args passed in constructor (but type have to be the same).
-            void addProducers(const size_t count,
-                            typename producer_t::signature_t producerFunct, 
-                            typename producer_t::args_tuple_t producerArgs) {                
-                _producers.reserve(_producers.size() + count);
-                for(size_t i = 0; i < count; ++i){
-                    _producers.emplace_back(std::make_unique<producer_t>(_buffer, _sync, producerFunct, producerArgs));
+            template<typename producer_t, typename...Args>
+            bool addProducers(const size_t count, Args...args) {        
+                if(!running){        
+                    _producers.reserve(_producers.size() + count);
+                    for(size_t i = 0; i < count; ++i){
+                        _producers.emplace_back(std::make_unique<producer_t>(_buffer, _sync, args...));
+                    }
+                    return true;
                 }
+                return false;
             }
 
 
             // add count of consumers. both the function and args can be different 
             // from consumer's function and args passed in constructor (but type have to be the same).
-            void addConsumers(const size_t count,
-                            typename consumer_t::signature_t consumerFunct, 
-                            typename consumer_t::args_tuple_t consumerArgs) {
-                _consumers.reserve(_consumers.size() + count);
-                for(size_t i = 0; i < count; ++i){
-                    _consumers.emplace_back(std::make_unique<consumer_t>(_buffer, _sync, consumerFunct, consumerArgs));
+            template<typename consumer_t, typename...Args>
+            bool addConsumers(const size_t count, Args...args) {
+                if(!running){
+                    _consumers.reserve(_consumers.size() + count);
+                    for(size_t i = 0; i < count; ++i){
+                        _consumers.emplace_back(std::make_unique<consumer_t>(_buffer, _sync, args...));
+                    }
+                    return true;
                 }
+                return false;
             }
 
             // starts the produce-consume process
             void run() {
                 if(!running){
                     _sync._exitThread = false;
-                    std::thread tmp(&PBCController::mainLoop, &*this);
-                    _mainLoop.swap(tmp);
-                    _mainLoop.join();
+                    mainLoop();
                     running = true;
                 }
             }
@@ -132,16 +121,24 @@ namespace Diploma{
             }
 
             // clears producers list
-            void clearProducers(){
-                _producers.clear();
-                _producers.shrink_to_fit();
+            bool clearProducers(){
+                if(!running){
+                    _producers.clear();
+                    _producers.shrink_to_fit();
+                    return true;
+                }
+                return false;
             }
 
 
             // clears consumers list
-            void clearConsumers(){
-                _consumers.clear();
-                _consumers.shrink_to_fit();
+            bool clearConsumers(){
+                if(!running){
+                    _consumers.clear();
+                    _consumers.shrink_to_fit();
+                    return true;
+                }
+                return false;
             }
     };
 }

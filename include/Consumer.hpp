@@ -17,27 +17,41 @@
 #include <type_traits>
 
 
+#include "IFunctionCaller.hpp"
 #include "Buffer.hpp"
 
 
 namespace Diploma{
     template<typename buffer_t, typename function_t, typename...Args>
-    class ConsumerBase : public IFunctionCaller {};
+    class ConsumerBase : public IConsumerBase {};
 
     template<typename buffer_t, typename function_t, typename...Args>
     class ConsumerBase<buffer_t, function_t, std::tuple<Args...> > : 
-    public IFunctionCaller { 
+    public IConsumerBase { 
     public:
         static_assert(std::is_invocable<function_t, buffer_t, Args...>::value);
         using signature_t = function_t;
         using args_tuple_t = std::tuple<Args...>;
     protected:
-        Buffer<buffer_t>& _buffer;
+        std::shared_ptr<BufferBase<buffer_t> >& _buffer;
         synchronization& _sync;
         function_t _consumer;
         std::tuple<Args...> _args;
+        virtual void consume(){
+            std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
+            auto bufferNotEmpty = _sync._conditionVar.wait_for(lockGuard,
+                                                                    std::chrono::milliseconds(1),
+                                                                    [this](){return !_buffer->isEmpty();});
+            if(bufferNotEmpty){
+                auto params = std::tuple_cat(std::make_tuple(_buffer->get()), _args);
+                std::apply(_consumer, params);
+            }
+            lockGuard.unlock();
+            _sync._conditionVar.notify_all();
+            std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+        }
     public:
-        ConsumerBase(Buffer<buffer_t>& buffer, synchronization& sync, 
+        ConsumerBase(std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
                     function_t funct, args_tuple_t& args) : _buffer{buffer}, 
                                                             _sync{sync},
                                                             _consumer{funct},
@@ -62,22 +76,12 @@ namespace Diploma{
         Consumer& operator=(Consumer&&) = delete;
         virtual ~Consumer() = default;
 
-        Consumer(Buffer<buffer_t>& buffer, synchronization& sync, 
+        Consumer(std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
             function_t funct, typename consumerBase_t::args_tuple_t& args) : consumerBase_t{buffer, sync, funct, args} {}
 
         virtual void run() override {
             while(!this->_sync._exitThread){
-                std::unique_lock<std::mutex> lockGuard(this->_sync._buffer_mutex);
-                auto bufferNotEmpty = this->_sync._conditionVar.wait_for(lockGuard,
-                                                                        std::chrono::milliseconds(1),
-                                                                        [this](){return !this->_buffer.isEmpty();});
-                if(bufferNotEmpty){
-                    auto params = std::tuple_cat(std::make_tuple(this->_buffer.get()), this->_args);
-                    std::apply(this->_consumer, params);
-                }
-                lockGuard.unlock();
-                this->_sync._conditionVar.notify_all();
-                std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+                this->consume();
             }
         }
     };
