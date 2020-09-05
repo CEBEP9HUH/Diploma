@@ -23,7 +23,9 @@
 
 namespace Diploma{
     template<typename buffer_t, typename function_t, typename...Args>
-    class ConsumerBase : public IConsumerBase {};
+    class ConsumerBase : public IConsumerBase {
+        
+    };
 
     template<typename buffer_t, typename function_t, typename...Args>
     class ConsumerBase<buffer_t, function_t, std::tuple<Args...> > : 
@@ -33,7 +35,7 @@ namespace Diploma{
         using signature_t = function_t;
         using args_tuple_t = std::tuple<Args...>;
     protected:
-        std::shared_ptr<BufferBase<buffer_t> >& _buffer;
+        std::shared_ptr<BufferBase<buffer_t> > _buffer;
         synchronization& _sync;
         function_t _consumer;
         std::tuple<Args...> _args;
@@ -51,8 +53,8 @@ namespace Diploma{
             std::this_thread::sleep_for(std::chrono::nanoseconds(1));
         }
     public:
-        ConsumerBase(std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
-                    function_t funct, args_tuple_t& args) : _buffer{buffer}, 
+        ConsumerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
+                    function_t funct, const args_tuple_t& args) : _buffer{buffer}, 
                                                             _sync{sync},
                                                             _consumer{funct},
                                                             _args{args} {}
@@ -76,8 +78,8 @@ namespace Diploma{
         Consumer& operator=(Consumer&&) = delete;
         virtual ~Consumer() = default;
 
-        Consumer(std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
-            function_t funct, typename consumerBase_t::args_tuple_t& args) : consumerBase_t{buffer, sync, funct, args} {}
+        Consumer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
+            function_t funct, const typename consumerBase_t::args_tuple_t& args) : consumerBase_t{buffer, sync, funct, args} {}
 
         virtual void run() override {
             while(!this->_sync._exitThread){

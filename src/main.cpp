@@ -32,6 +32,26 @@ public:
     }
 };
 
+class A1{
+    std::string _i;
+public:
+    A1() = delete;
+    A1(const std::string& i): _i{i}{}
+    A1(const A1& other){
+        _i = other._i;
+    }
+    A1& operator=(const A1& other){
+        _i = other._i;
+        return *this;
+    }
+    std::pair<int, bool> operator()(int c){
+        std::random_device rd;
+        int a = rd() % 10;
+        std::cout << _i << " add " << c << " to " << a << " and get " << c+a << "\n";
+        return std::make_pair(c+a, true);
+    }
+};
+
 
 /* 
     TODO
@@ -50,10 +70,10 @@ int main(){
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     pci.stop();
     
-    A c("Maushi");
+/*     A c("Maushi");
     pci.addProducers<LoopedProducer<int, A, std::tuple<int> > >(2, c, std::tuple<int>(-0), 2);
     pci.run();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    pci.stop();
+    pci.stop(); */
     return 0;
 }
