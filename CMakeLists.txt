@@ -32,7 +32,8 @@ target_link_libraries(
 add_executable(
     ${test_name}
     ${incl}/IFunctionCaller.hpp
-    ${test}/test.cpp
+    ${test}/creation.cpp
+    ${test}/execution.cpp
     ${incl}/Buffer.hpp
     ${incl}/Producer.hpp
     ${incl}/Consumer.hpp

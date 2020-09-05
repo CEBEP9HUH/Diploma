@@ -24,16 +24,8 @@
 namespace Diploma{
     template<typename buffer_t, typename function_t, typename...Args>
     class ConsumerBase : public IConsumerBase {
-        
-    };
-
-    template<typename buffer_t, typename function_t, typename...Args>
-    class ConsumerBase<buffer_t, function_t, std::tuple<Args...> > : 
-    public IConsumerBase { 
     public:
         static_assert(std::is_invocable<function_t, buffer_t, Args...>::value);
-        using signature_t = function_t;
-        using args_tuple_t = std::tuple<Args...>;
     protected:
         std::shared_ptr<BufferBase<buffer_t> > _buffer;
         synchronization& _sync;
@@ -42,8 +34,8 @@ namespace Diploma{
         virtual void consume(){
             std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
             auto bufferNotEmpty = _sync._conditionVar.wait_for(lockGuard,
-                                                                    std::chrono::milliseconds(1),
-                                                                    [this](){return !_buffer->isEmpty();});
+                                                                std::chrono::milliseconds(1),
+                                                                [this](){return !_buffer->isEmpty();});
             if(bufferNotEmpty){
                 auto params = std::tuple_cat(std::make_tuple(_buffer->get()), _args);
                 std::apply(_consumer, params);
@@ -53,23 +45,20 @@ namespace Diploma{
             std::this_thread::sleep_for(std::chrono::nanoseconds(1));
         }
     public:
-        ConsumerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
-                    function_t funct, const args_tuple_t& args) : _buffer{buffer}, 
-                                                            _sync{sync},
-                                                            _consumer{funct},
-                                                            _args{args} {}
+        ConsumerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
+                    synchronization& sync, 
+                    function_t funct, 
+                    const Args&...args) :   _buffer{buffer}, 
+                                            _sync{sync},
+                                            _consumer{funct},
+                                            _args{args...} {}
         virtual ~ConsumerBase() = default;
     };
 
     template<typename buffer_t, typename function_t, typename...Args>
     class Consumer : public ConsumerBase<buffer_t, function_t, Args...>{
-    };
-
-    template<typename buffer_t, typename function_t, typename...Args>
-    class Consumer <buffer_t, function_t, std::tuple<Args...> > : 
-    public ConsumerBase<buffer_t, function_t, std::tuple<Args...> > {
     private:
-        using consumerBase_t = ConsumerBase<buffer_t, function_t, std::tuple<Args...> >;
+        using consumerBase_t = ConsumerBase<buffer_t, function_t, Args...>;
     public:
         Consumer() = delete;
         Consumer(const Consumer&) = delete;
@@ -78,8 +67,10 @@ namespace Diploma{
         Consumer& operator=(Consumer&&) = delete;
         virtual ~Consumer() = default;
 
-        Consumer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
-            function_t funct, const typename consumerBase_t::args_tuple_t& args) : consumerBase_t{buffer, sync, funct, args} {}
+        Consumer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
+                synchronization& sync, 
+                function_t funct, 
+                const Args&...args) : consumerBase_t{buffer, sync, funct, args...} {}
 
         virtual void run() override {
             while(!this->_sync._exitThread){

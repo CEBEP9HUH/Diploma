@@ -64,7 +64,7 @@ namespace Diploma{
             // add count of producers. both the function and args can be different 
             // from producer's function and args passed in constructor (but type have to be the same).
             template<typename producer_t, typename...Args>
-            bool addProducers(const size_t count, Args...args) {        
+            bool addProducers(const size_t count, const Args&...args) {        
                 if(!running){        
                     _producers.reserve(_producers.size() + count);
                     for(size_t i = 0; i < count; ++i){

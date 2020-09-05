@@ -62,13 +62,13 @@ public:
 
 int main(){
     using namespace Diploma;
-    A a("Pupa"), b("Lupa");
+/*     A a("Pupa"), b("Lupa");
     PBCController<int> pci(std::make_shared<PriorityBuffer<int, std::greater<int> > >(100));
-    pci.addProducers<InfiniteProducer<int, A, std::tuple<int> > >(4, b, std::tuple<int>(-100)); 
+    pci.addProducers<InfiniteProducer<int, A, int > >(4, b, -100); 
     pci.addConsumers<Consumer<int, void(*)(int), std::tuple<> > >(4, bar, std::tuple<>());
     pci.run();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    pci.stop();
+    pci.stop(); */
     
 /*     A c("Maushi");
     pci.addProducers<LoopedProducer<int, A, std::tuple<int> > >(2, c, std::tuple<int>(-0), 2);

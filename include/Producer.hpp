@@ -24,20 +24,15 @@
 
 namespace Diploma{
     template<typename buffer_t, typename function_t, typename...Args>
-    class ProducerBase : public IProducerBase {};
-
-    template<typename buffer_t, typename function_t, typename...Args>
-    class ProducerBase<buffer_t, function_t, std::tuple<Args...> > : 
-    public IProducerBase{
+    class ProducerBase : public IProducerBase {
     public:
         static_assert(std::is_invocable<function_t, Args...>::value);
-        using signature_t = function_t;
-        using args_tuple_t = std::tuple<Args...>;
     protected:
         std::shared_ptr<BufferBase<buffer_t> > _buffer;
         synchronization& _sync;
         function_t _producer;
-        args_tuple_t _args;
+        std::tuple<Args...> _args;
+    protected:
         virtual void produce(){
             std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
             auto bufferNotFull = _sync._conditionVar.wait_for(lockGuard, 
@@ -51,23 +46,20 @@ namespace Diploma{
             std::this_thread::sleep_for(std::chrono::nanoseconds(1));
         }
     public:
-        ProducerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
-                    function_t funct, const args_tuple_t& args) : _buffer{buffer}, 
-                                                            _sync{sync},
-                                                            _producer{funct},
-                                                            _args{args} {}
+        ProducerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
+                    synchronization& sync, 
+                    function_t funct, 
+                    const Args&...args) :   _buffer{buffer}, 
+                                            _sync{sync},
+                                            _producer{funct},
+                                            _args{args...} {}
         virtual ~ProducerBase() = default;
     };
 
-
     template<typename buffer_t, typename function_t, typename...Args>
-    class InfiniteProducer : public ProducerBase<buffer_t, function_t, Args...>{};
-
-    template<typename buffer_t, typename function_t, typename...Args>
-    class InfiniteProducer <buffer_t, function_t, std::tuple<Args...> >  : 
-    public ProducerBase<buffer_t, function_t, std::tuple<Args...> > {
+    class InfiniteProducer : public ProducerBase<buffer_t, function_t, Args...>{
     private:
-        using produserBase_t = ProducerBase<buffer_t, function_t, std::tuple<Args...> >;
+        using produserBase_t = ProducerBase<buffer_t, function_t, Args... >;
     public:
         InfiniteProducer() = delete;
         InfiniteProducer(const InfiniteProducer&) = delete;
@@ -76,8 +68,10 @@ namespace Diploma{
         InfiniteProducer& operator=(InfiniteProducer&&) = delete;
         virtual ~InfiniteProducer() = default;
 
-        InfiniteProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
-                function_t funct, const typename produserBase_t::args_tuple_t& args) : produserBase_t{buffer, sync, funct, args} {}
+        InfiniteProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
+                        synchronization& sync, 
+                        function_t funct, 
+                        const Args&...args) : produserBase_t{buffer, sync, funct, args...} {}
 
         virtual void run() override {
             while(!this->_sync._exitThread){
@@ -88,12 +82,9 @@ namespace Diploma{
 
 
     template<typename buffer_t, typename function_t, typename...Args>
-    class LoopedProducer : public ProducerBase<buffer_t, function_t, Args...>{};
-
-    template<typename buffer_t, typename function_t, typename...Args>
-    class LoopedProducer <buffer_t, function_t, std::tuple<Args...> >  : public ProducerBase<buffer_t, function_t, std::tuple<Args...> > {
+    class LoopedProducer : public ProducerBase<buffer_t, function_t, Args...>{
     private:
-        using produserBase_t = ProducerBase<buffer_t, function_t, std::tuple<Args...> >;
+        using produserBase_t = ProducerBase<buffer_t, function_t, Args...>;
         size_t _repeatsCount;
     public:
         LoopedProducer() = delete;
@@ -103,16 +94,19 @@ namespace Diploma{
         LoopedProducer& operator=(LoopedProducer&&) = delete;
         virtual ~LoopedProducer() = default;
 
-        LoopedProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
-                function_t funct, const typename produserBase_t::args_tuple_t& args, 
-                const size_t repeatsCount) : produserBase_t{buffer, sync, funct, args}, 
-                                            _repeatsCount{repeatsCount} {}
+        LoopedProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
+                        synchronization& sync, 
+                        function_t funct, 
+                        const size_t repeatsCount,
+                        const Args&...args) :   produserBase_t{buffer, sync, funct, args...}, 
+                                                _repeatsCount{repeatsCount} {}
 
         virtual void run() override {
             for(size_t i=0; !this->_sync._exitThread &&  i<_repeatsCount; ++i){
                 this->produce();
             }
         }
+
     };
 
 
