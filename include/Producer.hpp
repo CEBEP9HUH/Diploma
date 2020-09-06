@@ -29,7 +29,7 @@ namespace Diploma{
         static_assert(std::is_invocable<function_t, Args...>::value);
     protected:
         std::shared_ptr<BufferBase<buffer_t> > _buffer;
-        synchronization& _sync;
+        accessSync& _sync;
         function_t _producer;
         std::tuple<Args...> _args;
     protected:
@@ -47,10 +47,9 @@ namespace Diploma{
         }
     public:
         ProducerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                    synchronization& sync, 
                     function_t funct, 
                     const Args&...args) :   _buffer{buffer}, 
-                                            _sync{sync},
+                                            _sync{buffer->getSync()},
                                             _producer{funct},
                                             _args{args...} {}
         virtual ~ProducerBase() = default;
@@ -69,9 +68,8 @@ namespace Diploma{
         virtual ~InfiniteProducer() = default;
 
         InfiniteProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                        synchronization& sync, 
                         function_t funct, 
-                        const Args&...args) : produserBase_t{buffer, sync, funct, args...} {}
+                        const Args&...args) : produserBase_t{buffer, funct, args...} {}
 
         virtual void run() override {
             while(!this->_sync._exitThread){
@@ -95,10 +93,9 @@ namespace Diploma{
         virtual ~LoopedProducer() = default;
 
         LoopedProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                        synchronization& sync, 
                         function_t funct, 
                         const size_t repeatsCount,
-                        const Args&...args) :   produserBase_t{buffer, sync, funct, args...}, 
+                        const Args&...args) :   produserBase_t{buffer, funct, args...}, 
                                                 _repeatsCount{repeatsCount} {}
 
         virtual void run() override {

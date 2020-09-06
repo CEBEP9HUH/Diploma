@@ -28,7 +28,7 @@ namespace Diploma{
         static_assert(std::is_invocable<function_t, buffer_t, Args...>::value);
     protected:
         std::shared_ptr<BufferBase<buffer_t> > _buffer;
-        synchronization& _sync;
+        accessSync& _sync;
         function_t _consumer;
         std::tuple<Args...> _args;
         virtual void consume(){
@@ -46,10 +46,9 @@ namespace Diploma{
         }
     public:
         ConsumerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                    synchronization& sync, 
                     function_t funct, 
                     const Args&...args) :   _buffer{buffer}, 
-                                            _sync{sync},
+                                            _sync{buffer->getSync()},
                                             _consumer{funct},
                                             _args{args...} {}
         virtual ~ConsumerBase() = default;
@@ -68,9 +67,8 @@ namespace Diploma{
         virtual ~Consumer() = default;
 
         Consumer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                synchronization& sync, 
                 function_t funct, 
-                const Args&...args) : consumerBase_t{buffer, sync, funct, args...} {}
+                const Args&...args) : consumerBase_t{buffer, funct, args...} {}
 
         virtual void run() override {
             while(!this->_sync._exitThread){

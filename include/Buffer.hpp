@@ -11,17 +11,17 @@
 
 #include <iostream>
 namespace Diploma{
-    struct synchronization{
+    struct accessSync{
         std::mutex _buffer_mutex;
         std::condition_variable _conditionVar;
         bool _exitThread = false;
     };
-
     template<typename buffer_t>
     class BufferBase{
     protected:
         static_assert(!std::is_same<buffer_t, void>::value, "return type of buffer cannot be void");
         size_t _maxSize;
+        accessSync _sync;
     public:
         BufferBase(const size_t size) : _maxSize{size} {}
         virtual ~BufferBase() = default;
@@ -36,6 +36,9 @@ namespace Diploma{
 
         virtual bool isFull() = 0;
         virtual bool isEmpty() = 0;
+        accessSync& getSync() {
+            return _sync;
+        }
     };
     
 

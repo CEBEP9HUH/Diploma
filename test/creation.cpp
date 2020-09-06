@@ -53,123 +53,105 @@ class FunctorConsParam{
 };
 
 TEST(INFINITE_PRODUCER_CREATION, FUNCTION_NO_PARAMETERS){
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, int(*)()> p(buffer, s, producer1);
+    Diploma::InfiniteProducer<int, int(*)()> p(buffer, producer1);
 }
 
 TEST(INFINITE_PRODUCER_CREATION, LAMBDA_NO_PARAMETERS){
     auto lambda = [](){return 1;};
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, decltype(lambda)> p(buffer, s, lambda);
+    Diploma::InfiniteProducer<int, decltype(lambda)> p(buffer,lambda);
 }
 
 TEST(INFINITE_PRODUCER_CREATION, FUNCTOR_NO_PARAMETERS){
     FunctorProdNoParam functor;
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, FunctorProdNoParam> p(buffer, s, functor);
+    Diploma::InfiniteProducer<int, FunctorProdNoParam> p(buffer, functor);
 }
 
 TEST(INFINITE_PRODUCER_CREATION, FUNCTION_PARAMETRIZED){
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, int(*)(int), int> p(buffer, s, producer2, 1);
+    Diploma::InfiniteProducer<int, int(*)(int), int> p(buffer, producer2, 1);
 }
 
 TEST(INFINITE_PRODUCER_CREATION, LAMBDA_PARAMETRIZED){
     auto lambda = [](int a){return a;};
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, decltype(lambda), int> p(buffer, s, lambda, 1);
+    Diploma::InfiniteProducer<int, decltype(lambda), int> p(buffer, lambda, 1);
 }
 
 TEST(INFINITE_PRODUCER_CREATION, FUNCTOR_PARAMETRIZED){
     FunctorProdParam functor;
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, FunctorProdParam, int> p(buffer, s, functor, 1);
+    Diploma::InfiniteProducer<int, FunctorProdParam, int> p(buffer, functor, 1);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, FUNCTION_NO_PARAMETERS){
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, int(*)()> p(buffer, s, producer1, 100);
+    Diploma::LoopedProducer<int, int(*)()> p(buffer, producer1, 100);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, LAMBDA_NO_PARAMETERS){
     auto lambda = [](){return 1;};
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, decltype(lambda)> p(buffer, s, lambda, 100);
+    Diploma::LoopedProducer<int, decltype(lambda)> p(buffer, lambda, 100);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, FUNCTOR_NO_PARAMETERS){
     FunctorProdNoParam functor;
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, FunctorProdNoParam> p(buffer, s, functor, 100);
+    Diploma::LoopedProducer<int, FunctorProdNoParam> p(buffer, functor, 100);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, FUNCTION_PARAMETRIZED){
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, int(*)(int), int> p(buffer, s, producer2, 1, 100);
+    Diploma::LoopedProducer<int, int(*)(int), int> p(buffer,  producer2, 1, 100);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, LAMBDA_PARAMETRIZED){
     auto lambda = [](int a){return a;};
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, decltype(lambda), int> p(buffer, s, lambda, 1, 100);
+    Diploma::LoopedProducer<int, decltype(lambda), int> p(buffer, lambda, 1, 100);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, FUNCTOR_PARAMETRIZED){
     FunctorProdParam functor;
-    Diploma::synchronization s;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, FunctorProdParam, int> p(buffer, s, functor, 1, 100);
+    Diploma::LoopedProducer<int, FunctorProdParam, int> p(buffer, functor, 1, 100);
 }
 
 TEST(CONSUMER_CREATION, FUNCTION_NO_PARAMETERS){
-    Diploma::synchronization s;
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, void(*)(int)> c(buffer, s, consumer1);
+    Diploma::Consumer<int, void(*)(int)> c(buffer, consumer1);
 }
 
 TEST(CONSUMER_CREATION, LAMBDA_NO_PARAMETERS){
-    Diploma::synchronization s;
     auto lambda = [](int a){(void)(a);};
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, decltype(lambda)> c(buffer, s, lambda);
+    Diploma::Consumer<int, decltype(lambda)> c(buffer, lambda);
 }
 
 TEST(CONSUMER_CREATION, FUNCTOR_NO_PARAMETERS){
-    Diploma::synchronization s;
     FunctorConsNoParam functor;
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, FunctorConsNoParam> c(buffer, s, functor);
+    Diploma::Consumer<int, FunctorConsNoParam> c(buffer, functor);
 }
 
 TEST(CONSUMER_CREATION, FUNCTION_PARAMETRIZED){
-    Diploma::synchronization s;
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, void(*)(int, int), int> c(buffer, s, consumer2, 1);
+    Diploma::Consumer<int, void(*)(int, int), int> c(buffer, consumer2, 1);
 }
 
 TEST(CONSUMER_CREATION, LAMBDA_PARAMETRIZED){
-    Diploma::synchronization s;
     auto lambda = [](int a, int b){(void)(a); (void)(b);};
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, decltype(lambda), int> c(buffer, s, lambda, 1);
+    Diploma::Consumer<int, decltype(lambda), int> c(buffer, lambda, 1);
 }
 
 TEST(CONSUMER_CREATION, FUNCTOR_PARAMETRIZED){
-    Diploma::synchronization s;
     FunctorConsParam functor;
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, FunctorConsParam, int> c(buffer, s, functor, 1);
+    Diploma::Consumer<int, FunctorConsParam, int> c(buffer, functor, 1);
 }
 
 TEST(PBC_CREATION, SIMPLE){

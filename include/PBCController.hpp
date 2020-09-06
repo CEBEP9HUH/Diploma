@@ -31,7 +31,7 @@ namespace Diploma{
             std::vector<std::thread> _producerThreads;
             std::vector<std::thread> _consumerThreads;
             std::shared_ptr<BufferBase<buffer_t> > _buffer;
-            synchronization _sync;
+            accessSync& _sync;
             bool running = false;
             template<typename T>
             void runThreads(std::vector<std::thread>& threads, 
@@ -58,7 +58,7 @@ namespace Diploma{
                 stop();
             }
 
-            explicit PBCController(const std::shared_ptr<BufferBase<buffer_t> >& buffer) : _buffer{buffer} {
+            explicit PBCController(const std::shared_ptr<BufferBase<buffer_t> >& buffer) : _buffer{buffer}, _sync{buffer->getSync()} {
             }
 
             // add count of producers. both the function and args can be different 
@@ -68,7 +68,7 @@ namespace Diploma{
                 if(!running){        
                     _producers.reserve(_producers.size() + count);
                     for(size_t i = 0; i < count; ++i){
-                        _producers.emplace_back(std::make_unique<producer_t>(_buffer, _sync, args...));
+                        _producers.emplace_back(std::make_unique<producer_t>(_buffer, args...));
                     }
                     return true;
                 }
@@ -83,7 +83,7 @@ namespace Diploma{
                 if(!running){
                     _consumers.reserve(_consumers.size() + count);
                     for(size_t i = 0; i < count; ++i){
-                        _consumers.emplace_back(std::make_unique<consumer_t>(_buffer, _sync, args...));
+                        _consumers.emplace_back(std::make_unique<consumer_t>(_buffer, args...));
                     }
                     return true;
                 }
