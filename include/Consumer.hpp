@@ -7,9 +7,10 @@
     parameter of type buffer_t. Function of this type will be passed in 
     constructor and will be used to process data from buffer. First parameter 
     is using to pass data from buffer
-        std::tuple<Args...> - is a tuple of types which must be passed 
-    into producer's function. It have to not include first parameter's type.
-    First parameter's type will be evaluated and added automatically.
+        Args... - is an enumeration of types of variables  which must be passed 
+    into consumer's function. It have to not include first parameter's type.
+    First parameter's type will be evaluated and added automatically. It's a buffer
+    value's type
     
     Consumer is an implementation of ConsumerBase 
 */
@@ -34,7 +35,7 @@ namespace Diploma{
         virtual void consume(){
             std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
             auto bufferNotEmpty = _sync._conditionVar.wait_for(lockGuard,
-                                                                std::chrono::milliseconds(1),
+                                                                std::chrono::nanoseconds(1),
                                                                 [this](){return !_buffer->isEmpty();});
             if(bufferNotEmpty){
                 auto params = std::tuple_cat(std::make_tuple(_buffer->get()), _args);
@@ -42,7 +43,6 @@ namespace Diploma{
             }
             lockGuard.unlock();
             _sync._conditionVar.notify_all();
-            std::this_thread::sleep_for(std::chrono::nanoseconds(1));
         }
     public:
         ConsumerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 

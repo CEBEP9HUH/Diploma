@@ -2,6 +2,9 @@
 /* 
     Buffer<buffer_t> is a shared memory place which can get values 
     from producer and provides them to consumer.
+    PriorityBuffer<buffer_t, comparator> is a shared memory place which can 
+    get values from producer and provides them to consumer. 
+    Return values by priority. Priority is sets by comparator
     buffer_t - is a type of storing data
 */
 

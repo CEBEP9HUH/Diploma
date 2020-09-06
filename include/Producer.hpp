@@ -6,13 +6,16 @@
         function_t - producer's function signature. It have to has return 
     type equals to buffer_t. Function of this type will be passed in 
     constructor and will be used to generate data for buffer
-        std::tuple<Args...> - is a tuple of types which must be passed 
+        Args... - is an enumeration of types of variables  which must be passed 
     into producer's function
     
     InfiniteProducer is an implementation of ProducerBase which repeats 
     producer function call until program end
     LoopedProducer is an implementation of ProducerBase which repeats 
     producer function call a finite number of times
+    PredicatedProducer is an implementation of ProducerBase which repeats 
+    producer function call until predicate returns false. In this case function_t
+    have to be inherited from Predicate class
 */
 
 #include <type_traits>
@@ -36,14 +39,13 @@ namespace Diploma{
         virtual void produce(){
             std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
             auto bufferNotFull = _sync._conditionVar.wait_for(lockGuard, 
-                                                            std::chrono::milliseconds(1), 
-                                                            [this](){return !_buffer->isFull();});
+                                                            std::chrono::nanoseconds(1), 
+                                                            [this](){return !_buffer->isFull();}); 
             if(bufferNotFull){
                 _buffer->insert(std::apply(_producer, _args));
             }
             lockGuard.unlock();
-            _sync._conditionVar.notify_all();
-            std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+            _sync._conditionVar.notify_all(); 
         }
     public:
         ProducerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
@@ -59,6 +61,7 @@ namespace Diploma{
     class InfiniteProducer : public ProducerBase<buffer_t, function_t, Args...>{
     private:
         using produserBase_t = ProducerBase<buffer_t, function_t, Args... >;
+        static_assert(std::is_same_v<typename std::invoke_result<function_t, Args...>::type, buffer_t>);
     public:
         InfiniteProducer() = delete;
         InfiniteProducer(const InfiniteProducer&) = delete;
@@ -106,33 +109,16 @@ namespace Diploma{
 
     };
 
-
-/*     template<typename buffer_t, typename function_t, typename...Args>
-    class PredicatedProducer : public ProducerBase<buffer_t, function_t, Args...>{};
+    class Predicate{
+        public:
+        virtual bool stopProducer() = 0;
+    };
 
     template<typename buffer_t, typename function_t, typename...Args>
-    class PredicatedProducer <buffer_t, function_t, std::tuple<Args...> >  : 
-    public ProducerBase<buffer_t, function_t, std::tuple<Args...> > {
+    class PredicatedProducer : public ProducerBase<buffer_t, function_t, Args...> {
     protected:
-        using produserBase_t = ProducerBase<buffer_t, function_t, std::tuple<Args...> >;
-        static_assert(std::is_same_v<std::pair<buffer_t, bool>, typename std::invoke_result<function_t, Args...>::type >);
-        bool _finish = false;
-        virtual void produce() override {
-            std::unique_lock<std::mutex> lockGuard(this->_sync._buffer_mutex);
-            auto bufferNotFull = this->_sync._conditionVar.wait_for(lockGuard, 
-                                                            std::chrono::milliseconds(1), 
-                                                            [this](){return !this->_buffer->isFull();});
-            if(bufferNotFull){
-                auto result = std::apply(this->_producer, this->_args);
-                _finish = result.second;
-                if(!_finish){
-                    this->_buffer->insert(result.first);
-                }
-            }
-            lockGuard.unlock();
-            this->_sync._conditionVar.notify_all();
-            std::this_thread::sleep_for(std::chrono::nanoseconds(1));
-        }
+        using produserBase_t = ProducerBase<buffer_t, function_t, Args...>;
+        static_assert(std::is_base_of<Predicate, function_t>::value);
     public:
         PredicatedProducer() = delete;
         PredicatedProducer(const PredicatedProducer&) = delete;
@@ -141,13 +127,14 @@ namespace Diploma{
         PredicatedProducer& operator=(PredicatedProducer&&) = delete;
         virtual ~PredicatedProducer() = default;
 
-        PredicatedProducer(std::shared_ptr<BufferBase<buffer_t> >& buffer, synchronization& sync, 
-                function_t funct, typename produserBase_t::args_tuple_t& args) : produserBase_t{buffer, sync, funct, args} {}
+        PredicatedProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
+                            function_t funct, 
+                            const Args&...args) : produserBase_t{buffer, funct, args...} {}
 
         virtual void run() override {
-            while(!this->_sync._exitThread && !_finish){
-                PredicatedProducer::produce();
+            while(!(this->_sync._exitThread || this->_producer.stopProducer())){
+                this->produce();
             }
         }
-    }; */
+    }; 
 }

@@ -34,6 +34,7 @@ add_executable(
     ${incl}/IFunctionCaller.hpp
     ${test}/creation.cpp
     ${test}/execution.cpp
+    ${test}/helpers.hpp
     ${incl}/Buffer.hpp
     ${incl}/Producer.hpp
     ${incl}/Consumer.hpp

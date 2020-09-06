@@ -3,58 +3,13 @@
 #include <mutex>
 
 
+#include "helpers.hpp"
 #include "PBCController.hpp"
 
 
-int producer1(){
-    return 1;
-}
-
-void consumer1(int a){
-    (void)(a);
-}
-
-class FunctorProdNoParam{
-    public:
-        int operator()(){
-            return 1;
-        }
-};
-
-class FunctorConsNoParam{
-    public:
-        void operator()(int a){
-            (void)(a);
-        }
-};
-
-int producer2(int a){
-    return a;
-}
-
-void consumer2(int a, int b){
-    (void)(a);
-    (void)(b);
-}
-
-class FunctorProdParam{
-    public:
-        int operator()(int a){
-            return a;
-        }
-};
-
-class FunctorConsParam{
-    public:
-        void operator()(int a, int b){
-            (void)(a);
-            (void)(b);
-        }
-};
-
 TEST(INFINITE_PRODUCER_CREATION, FUNCTION_NO_PARAMETERS){
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, int(*)()> p(buffer, producer1);
+    Diploma::InfiniteProducer<int, int(*)()> p(buffer, producerFuncNoParam);
 }
 
 TEST(INFINITE_PRODUCER_CREATION, LAMBDA_NO_PARAMETERS){
@@ -64,14 +19,14 @@ TEST(INFINITE_PRODUCER_CREATION, LAMBDA_NO_PARAMETERS){
 }
 
 TEST(INFINITE_PRODUCER_CREATION, FUNCTOR_NO_PARAMETERS){
-    FunctorProdNoParam functor;
+    ProducerFuncNoParam functor;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, FunctorProdNoParam> p(buffer, functor);
+    Diploma::InfiniteProducer<int, ProducerFuncNoParam> p(buffer, functor);
 }
 
 TEST(INFINITE_PRODUCER_CREATION, FUNCTION_PARAMETRIZED){
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, int(*)(int), int> p(buffer, producer2, 1);
+    Diploma::InfiniteProducer<int, int(*)(int), int> p(buffer, producerParametrisedFunc, 1);
 }
 
 TEST(INFINITE_PRODUCER_CREATION, LAMBDA_PARAMETRIZED){
@@ -81,14 +36,14 @@ TEST(INFINITE_PRODUCER_CREATION, LAMBDA_PARAMETRIZED){
 }
 
 TEST(INFINITE_PRODUCER_CREATION, FUNCTOR_PARAMETRIZED){
-    FunctorProdParam functor;
+    ProduserParametrisedFunc functor;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::InfiniteProducer<int, FunctorProdParam, int> p(buffer, functor, 1);
+    Diploma::InfiniteProducer<int, ProduserParametrisedFunc, int> p(buffer, functor, 1);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, FUNCTION_NO_PARAMETERS){
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, int(*)()> p(buffer, producer1, 100);
+    Diploma::LoopedProducer<int, int(*)()> p(buffer, producerFuncNoParam, 100);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, LAMBDA_NO_PARAMETERS){
@@ -98,14 +53,14 @@ TEST(LOOPED_PRODUCER_CREATION, LAMBDA_NO_PARAMETERS){
 }
 
 TEST(LOOPED_PRODUCER_CREATION, FUNCTOR_NO_PARAMETERS){
-    FunctorProdNoParam functor;
+    ProducerFuncNoParam functor;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, FunctorProdNoParam> p(buffer, functor, 100);
+    Diploma::LoopedProducer<int, ProducerFuncNoParam> p(buffer, functor, 100);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, FUNCTION_PARAMETRIZED){
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, int(*)(int), int> p(buffer,  producer2, 1, 100);
+    Diploma::LoopedProducer<int, int(*)(int), int> p(buffer,  producerParametrisedFunc, 1, 100);
 }
 
 TEST(LOOPED_PRODUCER_CREATION, LAMBDA_PARAMETRIZED){
@@ -115,14 +70,20 @@ TEST(LOOPED_PRODUCER_CREATION, LAMBDA_PARAMETRIZED){
 }
 
 TEST(LOOPED_PRODUCER_CREATION, FUNCTOR_PARAMETRIZED){
-    FunctorProdParam functor;
+    ProduserParametrisedFunc functor;
     auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::LoopedProducer<int, FunctorProdParam, int> p(buffer, functor, 1, 100);
+    Diploma::LoopedProducer<int, ProduserParametrisedFunc, int> p(buffer, functor, 1, 100);
+}
+
+TEST(PREDICATE_PRODUCER_CREATION, FUNCTION_NO_PARAMETERS){
+    ProducerPredicatedFunc pp;
+    auto buffer = std::make_shared<Diploma::Buffer<int> >(50);
+    Diploma::PredicatedProducer<int, ProducerPredicatedFunc> p(buffer, pp);
 }
 
 TEST(CONSUMER_CREATION, FUNCTION_NO_PARAMETERS){
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, void(*)(int)> c(buffer, consumer1);
+    Diploma::Consumer<int, void(*)(int)> c(buffer, consumerFuncNoParam);
 }
 
 TEST(CONSUMER_CREATION, LAMBDA_NO_PARAMETERS){
@@ -132,14 +93,14 @@ TEST(CONSUMER_CREATION, LAMBDA_NO_PARAMETERS){
 }
 
 TEST(CONSUMER_CREATION, FUNCTOR_NO_PARAMETERS){
-    FunctorConsNoParam functor;
+    ConsumerFuncNoParam functor;
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, FunctorConsNoParam> c(buffer, functor);
+    Diploma::Consumer<int, ConsumerFuncNoParam> c(buffer, functor);
 }
 
 TEST(CONSUMER_CREATION, FUNCTION_PARAMETRIZED){
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, void(*)(int, int), int> c(buffer, consumer2, 1);
+    Diploma::Consumer<int, void(*)(int, int), int> c(buffer, consumerParametrisedFunc, 1);
 }
 
 TEST(CONSUMER_CREATION, LAMBDA_PARAMETRIZED){
@@ -149,9 +110,9 @@ TEST(CONSUMER_CREATION, LAMBDA_PARAMETRIZED){
 }
 
 TEST(CONSUMER_CREATION, FUNCTOR_PARAMETRIZED){
-    FunctorConsParam functor;
+    ConsumerParametrisedFunc functor;
     std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(50);
-    Diploma::Consumer<int, FunctorConsParam, int> c(buffer, functor, 1);
+    Diploma::Consumer<int, ConsumerParametrisedFunc, int> c(buffer, functor, 1);
 }
 
 TEST(PBC_CREATION, SIMPLE){

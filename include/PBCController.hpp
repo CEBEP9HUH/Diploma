@@ -2,12 +2,8 @@
 /* 
     PBCController is a Producer-Buffer-Consumer Controller class. It 
     provides tools to adding, deleting, running and stopping producers 
-    and consumers. Also it creates buffer and syncronization tool.
-        producer_t is a producer type. It have to be derived from 
-    ProducerBase type.
-        consumer_t is a consumer type. It have to be derived from 
-    ConsumerBase type.
-        bufferSize is a maximum size of buffer.
+    and consumers.
+    buffer_t - is a bufer's value type
 */
 
 #include <vector>

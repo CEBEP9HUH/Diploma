@@ -4,35 +4,48 @@
 
 #include "PBCController.hpp"
 
-/* 
-void foo([[maybe_unused]]int a){
-    //std::cout << "10 + " << a << " = " << 10+a << "\n";
+
+void foo(int a){
+    std::cout << a << "\n";
 }
 
 class A{
+private:
+    int _i = 0;
 public:
-    int operator()(int c){
-        std::random_device rd;
-        int a = c+rd() % 10;
-        //std::cout << "Random: " << a << "\n";
-        return a;
+    int operator()(){
+        std::cout << _i << "\n";
+        return ++_i;
     }
 };
 
 
 static void BM_ProducerConsumerTesting(benchmark::State& state){
     A a;
-    Diploma::PBCController<Diploma::Producer<decltype(a), std::tuple<int> >, 
-                                Diploma::Consumer<void(*)(int), int, std::tuple<> >, 
-                                50> pci(40, 2, a, std::make_tuple<int>(-10), foo, std::make_tuple<>()); 
+    std::shared_ptr<Diploma::Buffer<int> > buffer = std::make_shared<Diploma::Buffer<int> >(1000);
+    Diploma::PBCController<int> pbc(buffer);
+    pbc.addProducers<Diploma::LoopedProducer<int, A> >(20, a, 1000);
+    pbc.addConsumers<Diploma::Consumer<int, void(*)(int)> >(20, foo);
     for (auto _ : state){
-        pci.run();
-        std::this_thread::sleep_for(std::chrono::minutes(20));
-        pci.stop();
+        pbc.run();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        pbc.stop();
     }
 }
-
 BENCHMARK(BM_ProducerConsumerTesting)->Unit(benchmark::kMillisecond)
-                                    ->Iterations(1); */
+                                    ->Iterations(1);
+
+
+/* static void BM_ClearTesting(benchmark::State& state){
+    A a;
+    for (auto _ : state){
+        for(size_t i =0; i<1000; ++i){
+            auto q = a();
+            foo(q);
+        }
+    }
+}
+BENCHMARK(BM_ClearTesting)->Unit(benchmark::kMillisecond)
+                                ->Iterations(1); */
 
 BENCHMARK_MAIN();
