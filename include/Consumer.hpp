@@ -32,21 +32,30 @@ namespace Diploma{
         accessSync& _sync;
         function_t _consumer;
         std::tuple<Args...> _args;
+        struct {
+            buffer_t value;
+            bool processed = true;
+        } _localBuffer;
         virtual void consume(){
             std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
             auto bufferNotEmpty = _sync._conditionVar.wait_for(lockGuard,
                                                                 std::chrono::nanoseconds(1),
                                                                 [this](){return !_buffer->isEmpty();});
             if(bufferNotEmpty){
-                auto params = std::tuple_cat(std::make_tuple(_buffer->get()), _args);
-                std::apply(_consumer, params);
+                _localBuffer.value = _buffer->get();
+                _localBuffer.processed = false;
             }
             lockGuard.unlock();
             _sync._conditionVar.notify_all();
+            if(!_localBuffer.processed){
+                auto params = std::tuple_cat(std::make_tuple(_localBuffer.value), _args);
+                std::apply(_consumer, params);
+                _localBuffer.processed = true;
+            }
         }
     public:
         ConsumerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                    function_t funct, 
+                    const function_t& funct, 
                     const Args&...args) :   _buffer{buffer}, 
                                             _sync{buffer->getSync()},
                                             _consumer{funct},
@@ -67,7 +76,7 @@ namespace Diploma{
         virtual ~Consumer() = default;
 
         Consumer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                function_t funct, 
+                const function_t& funct, 
                 const Args&...args) : consumerBase_t{buffer, funct, args...} {}
 
         virtual void run() override {

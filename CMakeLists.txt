@@ -31,10 +31,11 @@ target_link_libraries(
 # tests
 add_executable(
     ${test_name}
-    ${incl}/IFunctionCaller.hpp
     ${test}/creation.cpp
     ${test}/execution.cpp
-    ${test}/helpers.hpp
+    ${test}/test_helpers.hpp
+    ${test}/test_helpers.cpp
+    ${incl}/IFunctionCaller.hpp
     ${incl}/Buffer.hpp
     ${incl}/Producer.hpp
     ${incl}/Consumer.hpp
@@ -53,6 +54,8 @@ target_link_libraries(
 add_executable(
     ${perf_name}
     ${perf}/performance_testing.cpp
+    ${test}/test_helpers.hpp
+    ${test}/test_helpers.cpp
     ${incl}/IFunctionCaller.hpp
     ${incl}/Buffer.hpp
     ${incl}/Producer.hpp
@@ -65,6 +68,7 @@ target_link_libraries(
     pthread
     benchmark
     benchmark_main
+    stdc++fs
 )
 
 # common

@@ -35,21 +35,30 @@ namespace Diploma{
         accessSync& _sync;
         function_t _producer;
         std::tuple<Args...> _args;
+        struct {
+            buffer_t value;
+            bool inserted = true;
+        } _localBuffer;
     protected:
         virtual void produce(){
+            if(_localBuffer.inserted){
+                _localBuffer.value = std::apply(_producer, _args);
+                _localBuffer.inserted = false;
+            }
             std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
             auto bufferNotFull = _sync._conditionVar.wait_for(lockGuard, 
                                                             std::chrono::nanoseconds(1), 
                                                             [this](){return !_buffer->isFull();}); 
             if(bufferNotFull){
-                _buffer->insert(std::apply(_producer, _args));
+                _buffer->insert(_localBuffer.value);
+                _localBuffer.inserted = true;
             }
             lockGuard.unlock();
             _sync._conditionVar.notify_all(); 
         }
     public:
         ProducerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                    function_t funct, 
+                    const function_t& funct, 
                     const Args&...args) :   _buffer{buffer}, 
                                             _sync{buffer->getSync()},
                                             _producer{funct},
@@ -71,7 +80,7 @@ namespace Diploma{
         virtual ~InfiniteProducer() = default;
 
         InfiniteProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                        function_t funct, 
+                        const function_t& funct, 
                         const Args&...args) : produserBase_t{buffer, funct, args...} {}
 
         virtual void run() override {
@@ -96,13 +105,13 @@ namespace Diploma{
         virtual ~LoopedProducer() = default;
 
         LoopedProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                        function_t funct, 
+                        const function_t& funct, 
                         const size_t repeatsCount,
                         const Args&...args) :   produserBase_t{buffer, funct, args...}, 
                                                 _repeatsCount{repeatsCount} {}
 
         virtual void run() override {
-            for(size_t i=0; !this->_sync._exitThread &&  i<_repeatsCount; ++i){
+            for(size_t i=0; !this->_sync._exitThread && i<_repeatsCount; ++i){
                 this->produce();
             }
         }
@@ -128,7 +137,7 @@ namespace Diploma{
         virtual ~PredicatedProducer() = default;
 
         PredicatedProducer(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 
-                            function_t funct, 
+                            const function_t& funct, 
                             const Args&...args) : produserBase_t{buffer, funct, args...} {}
 
         virtual void run() override {
