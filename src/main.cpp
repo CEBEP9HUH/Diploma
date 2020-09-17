@@ -28,7 +28,6 @@ public:
     int operator()(int c){
         std::random_device rd;
         int a = rd() % 10;
-        //std::cout << _i << " add " << c << " to " << a << " and get " << c+a << "\n";
         return c+a;
     }
 };
@@ -55,13 +54,6 @@ public:
 };
 
 
-/* 
-    TODO
-    add tests
-    add performance tests
- */
-
-
 int main(){
     using namespace Diploma;
     A a("Pupa"), b("Lupa");
@@ -71,11 +63,5 @@ int main(){
     pci.run();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     pci.stop();
-    
-/*     A c("Maushi");
-    pci.addProducers<LoopedProducer<int, A, std::tuple<int> > >(2, c, std::tuple<int>(-0), 2);
-    pci.run();
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    pci.stop(); */
     return 0;
 }
