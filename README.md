@@ -57,7 +57,7 @@ There is program output (part):
  ...
 ```
 
-As you can see there is -84 was generated but consumer's first value is -43. This is happens because producers generate data before they lock shared buffer. So, producer was generate value but it wasn't be placed into buffer.
+As you can see there is -84 was generated but consumer's first value is -43. This is happens because producers generate data before they lock shared buffer. So, producer was generate value but it wasn't be placed into buffer yet.
 
 ### TODOs
  - To add possibility to save buffer on disk and load it
