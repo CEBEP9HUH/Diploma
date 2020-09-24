@@ -18,7 +18,6 @@
 
 
 namespace Diploma{
-    //template<typename producer_t, typename consumer_t, size_t bufferSize>
     template<typename buffer_t>
     class PBCController {
         private:
@@ -58,7 +57,6 @@ namespace Diploma{
             }
 
             // add count of producers. both the function and args can be different 
-            // from producer's function and args passed in constructor (but type have to be the same).
             template<typename producer_t, typename...Args>
             bool addProducers(const size_t count, const Args&...args) {        
                 if(!running){        
@@ -73,7 +71,6 @@ namespace Diploma{
 
 
             // add count of consumers. both the function and args can be different 
-            // from consumer's function and args passed in constructor (but type have to be the same).
             template<typename consumer_t, typename...Args>
             bool addConsumers(const size_t count, Args...args) {
                 if(!running){
