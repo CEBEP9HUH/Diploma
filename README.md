@@ -8,7 +8,6 @@ It is a C++ realisation of producer-consumer pattern.
     * Looped producer - produce data finite number of times
     * Predicated producer - produce data until condition will become true
     
-[//]: # (Hello)
 Every producer type takes a type of data to produce, a function-producer signature and types of function's parameters as a template parameters. Predicated producer's function have to be inherited from Predicate class.
 - Consumers class. It takes a type of data to consume, a function-consumer signature and types of function's parameters as a template parameters. Consumer be in progress until program end or user's command to stop producer-consumer process.
 - Provides several types of buffers:
