@@ -14,9 +14,9 @@ Every producer type takes a type of data to produce, a function-producer signatu
     * Priority buffer is a shared priority queue with data between all producers and consumers. Producers puts data in it. Consumers gets data from it by order defined by user.
 - Producer-Buffer-Consumer controller. Provides tools to add or remove producers and consumers. Different producers and consumers can be runned with mutual buffer at the same time (also user defined).
 ### Example
-In example below we create PBCController. We pass a shared pointer at priority buffer as a constructor parameter. Buffer's constructors takes integral value - size of buffer.
-On next line we add producer at PBCController. There is several parameters: count of producers to create, function-producer, function-producer's parameters.
-On next line we add consumer at PBCController. There is also several parameters: count of consumers to create, function-consumer, function-consumer's parameters (we no need one in this example).
+In example below we create PBCController. We pass a shared pointer at priority buffer as a constructor parameter. Buffer's constructors takes integral value - size of buffer.\
+On next line we add producer at PBCController. There is several parameters: count of producers to create, function-producer, function-producer's parameters.\
+On next line we add consumer at PBCController. There is also several parameters: count of consumers to create, function-consumer, function-consumer's parameters (we no need one in this example).\
 After it our producer-consumer is ready to start. We run it for a 50 ms and than we stop it.
 ```
 void bar(int a){
