@@ -46,13 +46,15 @@ int main(){
 }
 ```
 There is program output:
-> producer generate -43
-> producer generate -11
-> producer generate -12
-> producer generate -84
-> consumer get -43
-> consumer get -12
-> consumer get -11
+```
+ producer generate -43
+ producer generate -11
+ producer generate -12
+ producer generate -84
+ consumer get -43
+ consumer get -12
+ consumer get -11
+```
 
 As you can see there is -84 was generated but consumer's first value is -43. This is happens because producers generate data before they lock shared buffer. So, producer was generate value but it wasn't be placed into buffer.
 
