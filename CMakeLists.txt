@@ -11,8 +11,8 @@ set(test ${CMAKE_BINARY_DIR}/../test)
 set(perf ${CMAKE_BINARY_DIR}/../performance)
 
 # packages
-find_package(GTest REQUIRED)
-find_package(benchmark REQUIRED)
+find_package(GTest)
+find_package(benchmark)
 find_package(Threads REQUIRED)
 
 # project
