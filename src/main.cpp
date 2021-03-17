@@ -1,11 +1,12 @@
 #include "PBCController.hpp"
+#include "defines.hpp"
 
 
 #include <random>
 
 
 void foo(int a){
-    std::cout << "consumer get " << a << "\n";
+    std::cout << "\tconsumer get " << a << "\n";
 }
 
 class A{
@@ -22,11 +23,11 @@ public:
 int main(){
     using namespace Diploma;
     A a;
-    PBCController<int> pci(std::make_shared<PriorityBuffer<int, std::greater<int> > >(10));
-    pci.addProducers<InfiniteProducer<int, A, int > >(1, a, -100); 
-    pci.addConsumers<Consumer<int, void(*)(int)> >(1, foo);
+    PBCController<int> pci(std::make_shared<PriorityBuffer<int, std::greater<int> > >(BUFFER_SIZE));
+    pci.addProducers<InfiniteProducer<int, A, int > >(PRODUCERS_COUNT, a, -100); 
+    pci.addConsumers<Consumer<int, void(*)(int)> >(CONSUMERS_COUNT, foo);
     pci.run();
-    std::this_thread::sleep_for(std::chrono::milliseconds(6));
+    std::this_thread::sleep_for(std::chrono::milliseconds(WORK_TIME_MS));
     pci.stop();
     return 0;
 }

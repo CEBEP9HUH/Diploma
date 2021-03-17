@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
+# cmake -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake ..
+project(diploma)
 
 set(proj_name diploma)
 set(test_name tests)
@@ -11,6 +13,7 @@ set(perf ${CMAKE_BINARY_DIR}/../performance)
 # packages
 find_package(GTest REQUIRED)
 find_package(benchmark REQUIRED)
+find_package(Threads REQUIRED)
 
 # project
 add_executable(
@@ -25,89 +28,116 @@ add_executable(
 
 target_link_libraries(
     ${proj_name} PRIVATE
-    pthread
+    Threads::Threads
 )
 
-# tests
-add_executable(
-    ${test_name}
-    ${test}/creation.cpp
-    ${test}/execution.cpp
-    ${test}/test_helpers.hpp
-    ${test}/test_helpers.cpp
-    ${incl}/IFunctionCaller.hpp
-    ${incl}/Buffer.hpp
-    ${incl}/Producer.hpp
-    ${incl}/Consumer.hpp
-    ${incl}/PBCController.hpp
-)
-
-target_link_libraries(
-    ${test_name} PRIVATE
-    ${GTEST_LIBRARIES}
-    pthread
-    gtest
-    gtest_main
-)
-
-# performance test
-add_executable(
-    ${perf_name}
-    ${perf}/performance_testing.cpp
-    ${test}/test_helpers.hpp
-    ${test}/test_helpers.cpp
-    ${incl}/IFunctionCaller.hpp
-    ${incl}/Buffer.hpp
-    ${incl}/Producer.hpp
-    ${incl}/Consumer.hpp
-    ${incl}/PBCController.hpp
-)
-
-target_link_libraries(
-    ${perf_name} PRIVATE
-    pthread
-    benchmark
-    benchmark_main
-    stdc++fs
-)
-
-# common
 set_target_properties(
-    ${proj_name} ${test_name} ${perf_name} PROPERTIES
+    ${proj_name} PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
 
 include_directories(
     ${incl}
-    ${GTEST_INCLUDE_DIR}
 )
 
-# compilator
 if(MSVC)
     target_compile_options(${proj_name} PRIVATE
-        /W4
-    )
-    target_compile_options(${test_name} PRIVATE
-        /W4
-    )
-    target_compile_options(${perf_name} PRIVATE
         /W4
     )
 else()
     target_compile_options(${proj_name} PRIVATE
         -Wall -Wextra -Werror -pedantic
     )
-    target_compile_options(${test_name} PRIVATE
-        -Wall -Wextra -Werror -pedantic
-    )
-    target_compile_options(${perf_name} PRIVATE
-        -Wall -Wextra -Werror -pedantic
-    )
 endif()
 
+# tests
+if(GTEST_FOUND)
+    add_executable(
+        ${test_name}
+        ${test}/creation.cpp
+        ${test}/execution.cpp
+        ${test}/test_helpers.hpp
+        ${test}/test_helpers.cpp
+        ${incl}/IFunctionCaller.hpp
+        ${incl}/Buffer.hpp
+        ${incl}/Producer.hpp
+        ${incl}/Consumer.hpp
+        ${incl}/PBCController.hpp
+    )
 
-# testing
+    target_link_libraries(
+        ${test_name} PRIVATE
+        ${GTEST_LIBRARIES}
+        Threads::Threads
+        GTest::gtest
+        GTest::gtest_main
+    )
 
-enable_testing()
-add_test(${test_name} ${test_name})
+    include_directories(
+        ${GTEST_INCLUDE_DIR}
+    )
+    
+    set_target_properties(
+        ${test_name} PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+    )
+
+    if(MSVC)
+        target_compile_options(${test_name} PRIVATE
+            /W4
+        )
+    else()
+        target_compile_options(${test_name} PRIVATE
+            -Wall -Wextra -Werror -pedantic
+        )
+    endif()
+
+    enable_testing()
+    add_test(${test_name} ${test_name})
+else()
+    message("Tests are disabled. GTest was not found.")
+endif()
+
+# performance test
+if(benchmark_FOUND)
+    add_executable(
+        ${perf_name}
+        ${perf}/performance_testing.cpp
+        ${test}/test_helpers.hpp
+        ${test}/test_helpers.cpp
+        ${incl}/IFunctionCaller.hpp
+        ${incl}/Buffer.hpp
+        ${incl}/Producer.hpp
+        ${incl}/Consumer.hpp
+        ${incl}/PBCController.hpp
+    )
+
+    target_link_libraries(
+        ${perf_name} PRIVATE
+        Threads::Threads
+        benchmark::benchmark
+        benchmark::benchmark_main
+        # stdc++fs
+    )
+    set_target_properties(
+       ${perf_name}  PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+    )
+
+    # compilator
+    if(MSVC)
+        target_compile_options(${perf_name} PRIVATE
+            /W4
+        )
+    else()
+        target_compile_options(${perf_name} PRIVATE
+            -Wall -Wextra -Werror -pedantic
+        )
+    endif()
+else()
+    message("Performance tests are disabled. Benchmark was not found.")
+endif()
+

@@ -1,6 +1,6 @@
 #include <benchmark/benchmark.h>
 #include <random>
-#include <experimental/filesystem>
+#include <filesystem>
 
 
 #include "PBCController.hpp"
@@ -44,15 +44,15 @@ static void BM_StringHandling(benchmark::State& state){
     auto buffer = std::make_shared<Diploma::Buffer<std::string> >(3);
     Diploma::PBCController<std::string> pbc(buffer);
 
-    using namespace std::experimental;
+    using namespace std;
     filesystem::path p1 = filesystem::current_path().parent_path();
     p1 /= "performance";
     filesystem::path p2 = p1;
     p1 /= "test_text_1.txt";
     p2 /= "test_text_2.txt";
 
-    FileReader reader_1(p1);
-    FileReader reader_2(p2);
+    FileReader reader_1(p1.u8string());
+    FileReader reader_2(p2.u8string());
     StringHandler handler;
     pbc.addProducers<Diploma::PredicatedProducer<std::string, FileReader> >(5, reader_1);
     pbc.addProducers<Diploma::PredicatedProducer<std::string, FileReader> >(5, reader_2);

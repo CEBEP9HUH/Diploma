@@ -3,6 +3,7 @@
 
 #include <string_view>
 #include <fstream>
+#include <memory>
 
 
 #include "PBCController.hpp"
@@ -12,6 +13,8 @@ int producerFuncNoParam();
 int producerParametrisedFunc(int a);
 void consumerFuncNoParam(int a);
 void consumerParametrisedFunc(int a, int b);
+
+constexpr uint16_t MAX_LINE_SIZE = 256;
 
 
 class ProducerFuncNoParam{
@@ -68,9 +71,11 @@ public:
     FileReader(std::string name){
         std::ifstream _in;
         _in.open(name, std::ios::in);
-        std::string tmp;
-        while(std::getline(_in, tmp)){
+        char tmp[MAX_LINE_SIZE];
+        std::fill(std::begin(tmp), std::end(tmp), char(0));
+        while(_in.getline(tmp, MAX_LINE_SIZE)){
             _text.emplace_back(std::move(tmp));
+            std::fill(std::begin(tmp), std::end(tmp), char(0));
         }
         _in.close();
     }

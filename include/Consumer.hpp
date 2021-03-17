@@ -20,6 +20,7 @@
 
 #include "IFunctionCaller.hpp"
 #include "Buffer.hpp"
+#include "defines.hpp"
 
 
 namespace Diploma{
@@ -39,19 +40,19 @@ namespace Diploma{
         virtual void consume(){
             std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
             auto bufferNotEmpty = _sync._conditionVar.wait_for(lockGuard,
-                                                                std::chrono::nanoseconds(1),
+                                                                std::chrono::nanoseconds(CONSUMERS_CONDITION_VAR_AWAITING_NS),
                                                                 [this](){return !_buffer->isEmpty();});
             if(bufferNotEmpty){
                 _localBuffer.value = _buffer->get();
                 _localBuffer.processed = false;
             }
-            lockGuard.unlock();
-            _sync._conditionVar.notify_all();
             if(!_localBuffer.processed){
                 auto params = std::tuple_cat(std::make_tuple(_localBuffer.value), _args);
                 std::apply(_consumer, params);
                 _localBuffer.processed = true;
             }
+            lockGuard.unlock();
+            _sync._conditionVar.notify_all();
         }
     public:
         ConsumerBase(const std::shared_ptr<BufferBase<buffer_t> >& buffer, 

@@ -23,6 +23,7 @@
 
 #include "IFunctionCaller.hpp"
 #include "Buffer.hpp"
+#include "defines.hpp"
 
 
 namespace Diploma{
@@ -41,13 +42,13 @@ namespace Diploma{
         } _localBuffer;
     protected:
         virtual void produce(){
+            std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
             if(_localBuffer.inserted){
                 _localBuffer.value = std::apply(_producer, _args);
                 _localBuffer.inserted = false;
             }
-            std::unique_lock<std::mutex> lockGuard(_sync._buffer_mutex);
             auto bufferNotFull = _sync._conditionVar.wait_for(lockGuard, 
-                                                            std::chrono::nanoseconds(1), 
+                                                            std::chrono::nanoseconds(PRODUCERS_CONDITION_VAR_AWAITING_NS), 
                                                             [this](){return !_buffer->isFull();}); 
             if(bufferNotFull){
                 _buffer->insert(_localBuffer.value);
