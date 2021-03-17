@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-# cmake -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake ..
+
 project(diploma)
 
 set(proj_name diploma)
@@ -65,15 +65,6 @@ if(GTEST_FOUND)
         ${incl}/Consumer.hpp
         ${incl}/PBCController.hpp
     )
-
-    target_link_libraries(
-        ${test_name} PRIVATE
-        ${GTEST_LIBRARIES}
-        Threads::Threads
-        GTest::gtest
-        GTest::gtest_main
-    )
-
     include_directories(
         ${GTEST_INCLUDE_DIR}
     )
@@ -85,10 +76,24 @@ if(GTEST_FOUND)
     )
 
     if(MSVC)
+        target_link_libraries(
+            ${test_name} PRIVATE
+            ${GTEST_LIBRARIES}
+            Threads::Threads
+            GTest::gtest
+            GTest::gtest_main
+        )
         target_compile_options(${test_name} PRIVATE
             /W4
-        )
+        )    
     else()
+        target_link_libraries(
+            ${test_name} PRIVATE
+            ${GTEST_LIBRARIES}
+            Threads::Threads
+            gtest
+            gtest_main
+        )
         target_compile_options(${test_name} PRIVATE
             -Wall -Wextra -Werror -pedantic
         )
@@ -119,7 +124,6 @@ if(benchmark_FOUND)
         Threads::Threads
         benchmark::benchmark
         benchmark::benchmark_main
-        # stdc++fs
     )
     set_target_properties(
        ${perf_name}  PROPERTIES
@@ -133,6 +137,10 @@ if(benchmark_FOUND)
             /W4
         )
     else()
+        target_link_libraries(
+            ${perf_name} PRIVATE
+            stdc++fs
+        )
         target_compile_options(${perf_name} PRIVATE
             -Wall -Wextra -Werror -pedantic
         )
